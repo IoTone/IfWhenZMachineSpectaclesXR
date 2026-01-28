@@ -1,0 +1,47 @@
+- !<AssetImportMetadata/37c3b7c3-e361-4f73-a06e-2bac74a984cb>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> d7900bd2-ce46-42bd-9e2c-b2724505fbb0
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> d7900bd2-ce46-42bd-9e2c-b2724505fbb0
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 0962f91b-bfcc-42a7-bc82-cfb72cd50f51
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/0962f91b-bfcc-42a7-bc82-cfb72cd50f51>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 275fe263-5c8e-4844-b96f-b28979842fa9
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    buttonText: false
+    uiKitButton: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - buttonText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      uiKitButton: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input Component.Text buttonText
+    - // @input AssignableType uiKitButton

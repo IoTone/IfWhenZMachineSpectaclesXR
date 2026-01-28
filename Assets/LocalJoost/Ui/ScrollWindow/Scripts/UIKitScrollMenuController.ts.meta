@@ -1,0 +1,59 @@
+- !<AssetImportMetadata/b7133bdc-9c5b-4b95-9fa6-f3043878b3ee>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> e56c3a1f-f8ab-4a57-b93f-88d2845ac201
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> e56c3a1f-f8ab-4a57-b93f-88d2845ac201
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 88bc392d-615b-49b6-929d-0413e0d35be4
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/88bc392d-615b-49b6-929d-0413e0d35be4>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 8bd5f8f7-0acc-4aee-93e2-821f44894156
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    closeButton: false
+    columnSize: false
+    menuRoot: false
+    scrollButtonPrefab: false
+    scrollWindow: false
+    yOffset: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - yOffset: !<float> 5.000000
+      columnSize: !<float> 2.000000
+      scrollButtonPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      scrollWindow: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      menuRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      closeButton: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input float yOffset = 5
+    - // @input float columnSize = 4
+    - // @input Asset.ObjectPrefab scrollButtonPrefab
+    - // @input AssignableType scrollWindow
+    - // @input SceneObject menuRoot
+    - // @input AssignableType_1 closeButton

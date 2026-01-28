@@ -1,0 +1,39 @@
+- !<NativePackageDescriptor/1fe03982-eaef-436b-8480-30691d6b3987>
+  PackagePath: ""
+  StudioVersion:
+    major: 5
+    minor: 15
+    patch: 0
+    build: 25101318
+    type: Unset
+    buildFlavor: ""
+    timestamp: 0
+    commit: ""
+  Description: |-
+    Face Mesh with Skull 3D Model. You can also download a 3D model of the Face Mesh to with Skull view your content in other 3D softwares.
+    https://developers.snap.com/lens-studio/features/ar-tracking/face/face-mesh
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  VersionMajor: 1
+  VersionMinor: 0
+  VersionPatch: 0
+  UpdateCheckpoint: 76
+  ExportUid: d3bcaf37-b92b-4fb2-a23f-dad652f0ffaf
+  ComponentUid: a885adf1-d071-4a15-ba10-61c907b2ea28
+  PackagePolicy: CanBeUnpackedTransparent
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  Instantiable: !<reference> 00000000-0000-0000-0000-000000000000
+  AssetLibraryDependencyStructure: !<AssetLibraryDependencyStructure>
+    Name: ""
+    AssetId: ""
+    Hash: ""
+    Version:
+      major: 0
+      minor: 0
+      patch: 0
+      build: 0

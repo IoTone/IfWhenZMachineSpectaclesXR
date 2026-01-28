@@ -1,0 +1,37 @@
+- !<NativePackageDescriptor/7b43e85e-5d68-47b2-bb47-f7c266ee512f>
+  PackagePath: ""
+  StudioVersion:
+    major: 5
+    minor: 15
+    patch: 3
+    build: 26011319
+    type: Unset
+    buildFlavor: ""
+    timestamp: 0
+    commit: ""
+  Description: Head Physics Collider Allows adding interaction between physics objects and head by adding Collider inside Head Binding. Please remember to place all dynamic physics bodies outside Head Binding hieararchy in Objects panel. Click here to learn more on how to use Physics
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  VersionMajor: 1
+  VersionMinor: 0
+  VersionPatch: 0
+  UpdateCheckpoint: 76
+  ExportUid: 92e2f1ab-826f-4710-a5fe-cf536bf9971c
+  ComponentUid: c81d972f-7ba9-4b10-8dec-5e0f0cf166ac
+  PackagePolicy: CanBeUnpackedTransparent
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  Instantiable: !<reference> 00000000-0000-0000-0000-000000000000
+  AssetLibraryDependencyStructure: !<AssetLibraryDependencyStructure>
+    Name: ""
+    AssetId: ""
+    Hash: ""
+    Version:
+      major: 0
+      minor: 0
+      patch: 0
+      build: 0

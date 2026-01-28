@@ -1,0 +1,44 @@
+- !<AssetImportMetadata/87f91fc3-7108-49e6-910c-03bed04d12aa>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> bf05b653-8b6b-4349-b61b-518f19fe2bc5
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> bf05b653-8b6b-4349-b61b-518f19fe2bc5
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 93f73790-20e1-4ebe-9cef-d0ce0a28f7a9
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/93f73790-20e1-4ebe-9cef-d0ce0a28f7a9>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: a6cb7ce8-ddad-454a-9a12-ef46988e03db
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    scrollMenuController: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - scrollMenuController: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType scrollMenuController

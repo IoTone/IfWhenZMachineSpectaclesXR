@@ -1,0 +1,39 @@
+- !<NativePackageDescriptor/9fa2e768-5084-4fe1-bc9d-5ddb8a48550d>
+  PackagePath: ""
+  StudioVersion:
+    major: 5
+    minor: 15
+    patch: 0
+    build: 25101318
+    type: Unset
+    buildFlavor: ""
+    timestamp: 0
+    commit: ""
+  Description: |-
+    You can also download a 3D model of the Face Mesh to view your content in other 3D softwares. 
+    https://developers.snap.com/lens-studio/features/ar-tracking/face/face-mesh
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  VersionMajor: 1
+  VersionMinor: 0
+  VersionPatch: 0
+  UpdateCheckpoint: 76
+  ExportUid: 84e64bf0-24eb-4086-b4ef-6cd854da84aa
+  ComponentUid: fd9c6104-ea77-4f16-b14c-a5d0541346b5
+  PackagePolicy: CanBeUnpackedTransparent
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  Instantiable: !<reference> 00000000-0000-0000-0000-000000000000
+  AssetLibraryDependencyStructure: !<AssetLibraryDependencyStructure>
+    Name: ""
+    AssetId: ""
+    Hash: ""
+    Version:
+      major: 0
+      minor: 0
+      patch: 0
+      build: 0
