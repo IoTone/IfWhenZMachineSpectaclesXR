@@ -1,4 +1,5 @@
 "use strict";
+
 var nt = Object.create;
 var Ve = Object.defineProperty;
 var ot = Object.getOwnPropertyDescriptor;
@@ -1213,10 +1214,10 @@ var Ne = A((S) => {
         e.trace && console.log(`@buffer_mode ${t} (no-op)`);
     }
     function Lr(e, [t, r]) {
-        e.trace && console.log(`@output_stream ${t}${r !== void 0 ? `,${r}` : ""} (no-op)`);
+        // e.trace && console.log(`@output_stream ${t}${r !== void 0 ? `,${r}` : ""} (no-op)`);
     }
     function kr(e, [t]) {
-        e.trace && console.log(`@input_stream ${t} (no-op)`);
+        // e.trace && console.log(`@input_stream ${t} (no-op)`);
     }
     function Cr(e, t) {
         e.trace && console.log(`@sound_effect ${t.join(",")} (no-op)`);
@@ -1244,8 +1245,10 @@ var Ne = A((S) => {
                 return;
             }
             if (e.runtime === "node") {
-                let { writeFile: s } = await Promise.resolve().then(() => Ze(require("fs/promises"))),
-                    i = e.filePath + ".qzl";
+                // XXX Porting
+                // let { writeFile: s } = await Promise.resolve().then(() => Ze(require("fs/promises"))),
+                //    i = e.filePath + ".qzl";
+                let s = undefined;
                 await s(i, o), e.trace && console.log(`@save: saved to ${i}`), r.branch?.(!0);
             } else if (e.runtime === "browser") {
                 let s = e.getHeader();
@@ -1271,8 +1274,10 @@ var Ne = A((S) => {
     async function zr(e, t, r) {
         try {
             if (e.runtime === "node") {
-                let { readFile: n } = await Promise.resolve().then(() => Ze(require("fs/promises"))),
-                    o = e.filePath + ".qzl";
+                // XXX Porting
+                /* let { readFile: n } = await Promise.resolve().then(() => Ze(require("fs/promises"))),
+                    o = e.filePath + ".qzl"; */
+                let readfile = undefined;
                 try {
                     let s = await n(o);
                     if (
@@ -1929,7 +1934,8 @@ var Xe = A((z) => {
             async saveData(t) {
                 let r = null;
                 if (this.runtime === "node") {
-                    let { readFile: x } = await Promise.resolve().then(() => $e(require("fs/promises")));
+                    // XXX Porting
+                    // let { readFile: x } = await Promise.resolve().then(() => $e(require("fs/promises")));
                     r = await x(this.filePath);
                 }
                 if (this.runtime === "browser") {
@@ -2613,8 +2619,13 @@ var ve = A((Se) => {
 });
 var Qe = he(ve());
 // XXX Porting
-// var Ge = require("node:readline/promises");
-var Ge = undefined
+// import { createReadline } from ("../readline");
+// var Ge = require("../readline");
+var Ge = require("../readline"); 
+const rl = Ge; //  Ge.createReadline();
+// var Ge = require("../readline");
+// var Ge = undefined
+// var Ge = createReadline; // readline.ts export function createReadline() { let pendingResolve: (value: string) => void = null; return { // Called by your UI when the user submits text _pushInput(value: string) { if (pendingResolve) { pendingResolve(value); pendingResolve = null; } }, // Public API: await readline.question("...") question(prompt: string): Promise<string> { print(prompt); return new Promise(resolve => { pendingResolve = resolve; }); } }; }
 var Be = class {
     constructor() {
         this.zmcdnSessionID = "";
@@ -2625,9 +2636,9 @@ var Be = class {
         this.illustrationFormat = "";
     }
 };
-var Je = he(require("crypto")),
-    Jr = he(require("http")),
-    Qr = he(require("https")),
+var // XXX: PORTING Je = he(require("crypto")),
+    /* Jr = he(require("http")),
+    Qr = he(require("https")), */
     we = class e {
         constructor(t) {
             this.ZMCDNText = "";
@@ -2645,7 +2656,7 @@ var Je = he(require("crypto")),
                   (console.warn(`Ignoring invalid --zmcdn value: ${String(t)}`), (this.zmcdnEnabled = !1)),
                 // XXX Porting
                 // https://github.com/bhoriuchi/readline-promise
-                /*
+                /* 
                 (this.rl = (0, Ge.createInterface)({
                     input: process.stdin,
                     output: process.stdout,
@@ -2653,10 +2664,13 @@ var Je = he(require("crypto")),
                     prompt: "",
                 }));
                 */
-                (this.r1 = undefined);
+                (this.r1 = Ge);
+                // (this.r1 = undefined);
         }
         static getHttpModule(t) {
-            return t.protocol === "https:" ? Qr : Jr;
+            // XXX PORTING
+            return undefined;
+            // XXX return t.protocol === "https:" ? Qr : Jr;
         }
         static normalizeZmcdnUrl(t) {
             if (!t) return;
@@ -2682,7 +2696,7 @@ var Je = he(require("crypto")),
         }
         async processZMCDNText() {
             if (this.ZMCDNText && this.zmcdnEnabled) {
-                this.zmcdnSessionId || (this.zmcdnSessionId = Je.randomUUID());
+                this.zmcdnSessionId || (this.zmcdnSessionId = crypto.randomUUID());// XXX: Porting Je.randomUUID());
                 let t = new Be();
                 if (
                     ((t.zmcdnSessionID = this.zmcdnSessionId),
@@ -2707,10 +2721,12 @@ var Je = he(require("crypto")),
                 let o = `${this.zmcdnServer}/illustrateMove`;
                 try {
                     let s = await this.postJSON(o, t);
+                    /* 
                     process.stdout.write(s),
                         process.stdout.write(`
 `),
                         process.stdout.write(t.lastZMachineOutput);
+                    */
                 } catch (s) {
                     console.error(`Failed to fetch graphics from ${o}: ${s instanceof Error ? s.message : String(s)}`);
                 }
@@ -2751,6 +2767,8 @@ var Je = he(require("crypto")),
                 d.on("error", o), d.write(s), d.end();
             });
         }
+        // XXX: PORTING
+        /* 
         fetchURL(t) {
             return new Promise((r, n) => {
                 let o = new URL(t);
@@ -2798,7 +2816,7 @@ var Je = he(require("crypto")),
                     });
                 d.on("error", o), d.write(s), d.end();
             });
-        }
+        } */
         async readChar() {
             return (
                 await this.processZMCDNText(),
@@ -3002,6 +3020,7 @@ Game quit.`),
     }
 }
 Yr().catch((e) => {
-    console.error(e), process.exit(1);
+    // XXX Porting
+    // console.error(e), process.exit(1);
 });
 //# sourceMappingURL=tszm.map
