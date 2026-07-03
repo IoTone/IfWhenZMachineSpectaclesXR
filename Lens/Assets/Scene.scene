@@ -2099,22 +2099,6 @@
     []
   Components:
     - !<own> 5fa37268-1896-49a0-b157-2ecff0a9c18d
-- !<ScriptComponent/969e09b3-6e3b-4ea6-a745-cb0de9a2e316>
-  PrefabRemaps:
-    []
-  Name: tszm
-  Enabled: true
-  ScriptAsset: !<reference> 14fd3365-7fb0-4fd6-b928-b4ccca974b95
-  ScriptInputsDefault:
-    {}
-  ScriptTypesDefault:
-    {}
-  ScriptInputs:
-    "":
-      {}
-  ScriptTypes:
-    "":
-      {}
 - !<SceneObject/974e2072-cd2a-4664-8d91-d71bbcd60d54>
   PrefabRemaps:
     []
@@ -2656,21 +2640,6 @@
     - !<own> af1f37ee-22ea-45a4-b833-bf90f24f074b
   Components:
     []
-- !<SceneObject/b862e05a-cbb0-4796-81cd-01222a884c23>
-  PrefabRemaps:
-    []
-  Name: tszm
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> 969e09b3-6e3b-4ea6-a745-cb0de9a2e316
 - !<SceneObject/b9209fec-b989-4422-a397-b0b560812e8e>
   PrefabRemaps:
     []
@@ -3180,7 +3149,7 @@
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
-    - !<own> b862e05a-cbb0-4796-81cd-01222a884c23
+    []
   Components:
     []
 - !<SceneObject/dfaad098-318f-4c37-a06b-b85501a6dd79>

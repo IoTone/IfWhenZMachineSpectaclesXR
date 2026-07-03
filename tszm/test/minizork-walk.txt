@@ -1,0 +1,20 @@
+open mailbox
+read leaflet
+north
+east
+open window
+enter window
+take bottle
+west
+take lamp
+turn on lamp
+move rug
+open trap door
+save
+inventory
+down
+look
+restore
+inventory
+quit
+y

@@ -6,6 +6,10 @@ var ot = Object.getOwnPropertyDescriptor;
 var st = Object.getOwnPropertyNames;
 var it = Object.getPrototypeOf,
     at = Object.prototype.hasOwnProperty;
+if (!this.runtime) {
+    this.runtime = "specs24";
+}
+print(this.runtime);
 var A = (e, t) => () => (t || e((t = { exports: {} }).exports, t), t.exports);
 var ct = (e, t, r, n) => {
     if ((t && typeof t == "object") || typeof t == "function")
@@ -1214,9 +1218,11 @@ var Ne = A((S) => {
         e.trace && console.log(`@buffer_mode ${t} (no-op)`);
     }
     function Lr(e, [t, r]) {
+        return;
         // e.trace && console.log(`@output_stream ${t}${r !== void 0 ? `,${r}` : ""} (no-op)`);
     }
     function kr(e, [t]) {
+        return;
         // e.trace && console.log(`@input_stream ${t} (no-op)`);
     }
     function Cr(e, t) {

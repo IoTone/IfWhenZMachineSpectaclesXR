@@ -1,0 +1,13 @@
+look
+enter building
+take lamp
+take keys
+inventory
+save
+xyzzy
+look
+restore
+inventory
+score
+quit
+yes
