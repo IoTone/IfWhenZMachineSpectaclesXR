@@ -13,8 +13,24 @@ const path = require("path");
 
 // Install shims BEFORE loading the core, then hide Node's Buffer from the test
 // by making sure the core sees the spectacles runtime.
-const shims = require("../spectacles/shims.js");
-globalThis.__TSZM_SPECTACLES__ = true;
+//
+// TSZM_BUNDLE=1 tests the built artifact (dist/tszm.spectacles.js) instead of
+// the source tree, and overrides the global Buffer with the shim so the bundle
+// runs purely on the polyfill — the closest Node can get to the Lens runtime.
+let shims;
+let ZMachine;
+if (process.env.TSZM_BUNDLE) {
+    const bundle = require("../dist/tszm.spectacles.js");
+    shims = bundle.shims;
+    ZMachine = bundle.ZMachine;
+    globalThis.Buffer = shims.Buffer;
+    console.error("[harness] testing BUILT BUNDLE with shim Buffer");
+}
+else {
+    shims = require("../spectacles/shims.js");
+    globalThis.__TSZM_SPECTACLES__ = true;
+    ZMachine = require("../core/index.js").ZMachine;
+}
 
 // In-memory storage stub standing in for PersistentStorageSystem.
 const storage = {};
@@ -24,8 +40,6 @@ globalThis.__tszmStorage = {
         storage[k] = v;
     },
 };
-
-const { ZMachine } = require("../core/index.js");
 
 function parseArgs(argv) {
     const args = { trace: false, maxSteps: 2_000_000, game: null, input: null };

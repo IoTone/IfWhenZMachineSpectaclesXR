@@ -33,8 +33,23 @@ ZMCDN-capable fork (browneverettlewis / "tscdn" lineage) the bundle was actually
    scrolling text UI; ZMCDN http -> Remote Service Gateway; graphics -> AI image gen
    + native Spatial Image (photo -> spatialized mesh).
 
-## Build
+## Build & test
 
-esbuild bundles `host/tszm.ts` (+ `core/`) into the Lens asset above, targeting the
-Spectacles JS runtime (no Node externals; `print`/`global`/`require("../readline")`).
-TODO: add `package.json` + esbuild config.
+```
+npm install          # once (esbuild only)
+npm run build        # -> dist/tszm.spectacles.js (+ sourcemap)
+npm run deploy       # build straight into Lens/Assets/Application/Scripts/tszm/tszm.js
+npm run test:czech   # CZECH conformance suite against the source tree
+npm run test:bundle  # CZECH against the BUILT bundle, pure shim Buffer
+npm run test:minizork / test:advent   # scripted game walkthroughs
+```
+
+The entry `spectacles/index.js` installs the shims as globals, forces the
+`spectacles` runtime, and exports `{ ZMachine, shims, setStorage, setGameLoader }`
+as a CommonJS module — the Lens host consumes it with `require()`. The only
+external left in the bundle is `fs/promises`, inside `runtime === 'node'` guards
+that never execute on device. Verified by loading and playing MiniZork inside a
+bare `vm` context with no Node globals.
+
+Status: CZECH 425 tests / 0 failures (source and bundle); MiniZork (v3) and
+Adventure (v5) complete scripted walkthroughs incl. save/restore round-trips.
