@@ -1,0 +1,56 @@
+- !<AssetImportMetadata/8a32f442-c028-4ba2-909c-cb7f5376449f>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 9d990a8c-07c4-42af-8371-ba2998322a2e
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 9d990a8c-07c4-42af-8371-ba2998322a2e
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> d7ca3237-bec3-4d8f-b798-cb057acfeedd
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/d7ca3237-bec3-4d8f-b798-cb057acfeedd>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 759d9324-f9a0-4a78-a8aa-c0adb2383667
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    autoDemo: false
+    maxLines: false
+    outputText: false
+    statusText: false
+    wrapColumn: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - outputText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      statusText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      maxLines: !<float> 16.000000
+      wrapColumn: !<float> 42.000000
+      autoDemo: false
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input Component.Text outputText
+    - // @input Component.Text statusText
+    - // @input float maxLines = 16
+    - // @input float wrapColumn = 42
+    - // @input bool autoDemo

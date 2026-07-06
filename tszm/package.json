@@ -4,12 +4,14 @@
   "version": "0.1.0",
   "description": "Z-Machine interpreter (tszm fork) built for the Snap Spectacles Lens runtime",
   "scripts": {
-    "build": "esbuild spectacles/index.js --bundle --format=cjs --platform=neutral --target=es2020 --external:fs/promises --sourcemap --outfile=dist/tszm.spectacles.js",
-    "deploy": "esbuild spectacles/index.js --bundle --format=cjs --platform=neutral --target=es2020 --external:fs/promises --outfile='../Lens/Assets/Application/Scripts/tszm/tszm.js'",
+    "build": "esbuild spectacles/index.js --bundle --format=cjs --platform=neutral --target=es2020 --alias:fs/promises=./spectacles/fs-stub.js --sourcemap --outfile=dist/tszm.spectacles.js",
+    "deploy": "esbuild spectacles/index.js --bundle --format=cjs --platform=neutral --target=es2020 --alias:fs/promises=./spectacles/fs-stub.js --outfile='../Lens/Assets/Application/Scripts/tszm/tszm.js'",
     "test:czech": "cd test && node run.js games/czech.z5",
     "test:minizork": "cd test && node run.js games/minizork.z3 minizork-walk.txt",
     "test:advent": "cd test && node run.js games/advent.z5 advent-walk.txt",
-    "test:bundle": "npm run build && cd test && TSZM_BUNDLE=1 node run.js games/czech.z5"
+    "test:bundle": "npm run build && cd test && TSZM_BUNDLE=1 node run.js games/czech.z5",
+    "test:host": "npm run build && cd test && node run-host.js",
+    "embed:minizork": "node tools/embed-game.js test/games/minizork.z3 '../Lens/Assets/Application/Scripts/games/MiniZork.js' 'Mini-Zork I'"
   },
   "devDependencies": {
     "esbuild": "^0.24.0"

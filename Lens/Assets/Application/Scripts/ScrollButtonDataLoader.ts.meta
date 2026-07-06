@@ -27,6 +27,8 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     scrollMenuController: false
+    voiceInput: false
+    zmHost: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -37,8 +39,12 @@
     []
   DefaultScriptInputs:
     - scrollMenuController: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      zmHost: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      voiceInput: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
   InputLines:
     - // @input AssignableType scrollMenuController
+    - // @input AssignableType_1 zmHost
+    - // @input AssignableType_2 voiceInput

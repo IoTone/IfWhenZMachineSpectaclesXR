@@ -1461,6 +1461,20 @@ var require_memory = __commonJS({
   }
 });
 
+// spectacles/fs-stub.js
+var require_fs_stub = __commonJS({
+  "spectacles/fs-stub.js"(exports2, module2) {
+    "use strict";
+    async function unavailable() {
+      throw new Error("fs/promises is not available in the Spectacles runtime");
+    }
+    module2.exports = {
+      readFile: unavailable,
+      writeFile: unavailable
+    };
+  }
+});
+
 // core/opcodes/handlers/io.js
 var require_io = __commonJS({
   "core/opcodes/handlers/io.js"(exports2) {
@@ -1921,7 +1935,7 @@ var require_io = __commonJS({
           return;
         }
         if (vm.runtime === "node") {
-          const { writeFile } = await Promise.resolve().then(() => __importStar(require("fs/promises")));
+          const { writeFile } = await Promise.resolve().then(() => __importStar(require_fs_stub()));
           const savePath = vm.filePath + ".qzl";
           await writeFile(savePath, saveData);
           if (vm.trace) {
@@ -1984,7 +1998,7 @@ var require_io = __commonJS({
     async function h_restore(vm, _operands, ctx) {
       try {
         if (vm.runtime === "node") {
-          const { readFile } = await Promise.resolve().then(() => __importStar(require("fs/promises")));
+          const { readFile } = await Promise.resolve().then(() => __importStar(require_fs_stub()));
           const savePath = vm.filePath + ".qzl";
           try {
             const saveData = await readFile(savePath);
@@ -2134,7 +2148,7 @@ var require_io = __commonJS({
         return true;
       }
       if (vm.runtime === "node") {
-        const { writeFile } = await Promise.resolve().then(() => __importStar(require("fs/promises")));
+        const { writeFile } = await Promise.resolve().then(() => __importStar(require_fs_stub()));
         await writeFile(vm.filePath + ".qzl", saveData);
         return true;
       }
@@ -2157,7 +2171,7 @@ var require_io = __commonJS({
       }
       if (vm.runtime === "node") {
         try {
-          const { readFile } = await Promise.resolve().then(() => __importStar(require("fs/promises")));
+          const { readFile } = await Promise.resolve().then(() => __importStar(require_fs_stub()));
           return await readFile(vm.filePath + ".qzl");
         } catch {
           return null;
@@ -3095,7 +3109,7 @@ var require_ZMachine = __commonJS({
       async saveData(pc) {
         let cleanMemory = null;
         if (this.runtime === "node") {
-          const { readFile } = await Promise.resolve().then(() => __importStar(require("fs/promises")));
+          const { readFile } = await Promise.resolve().then(() => __importStar(require_fs_stub()));
           cleanMemory = await readFile(this.filePath);
         }
         if (this.runtime === "browser") {
@@ -3125,10 +3139,12 @@ var require_ZMachine = __commonJS({
         const stackData = [];
         const needsDummyFrame = this.header.version <= 5 || this.header.version >= 7;
         const dummyFrameEvalStack = needsDummyFrame ? [1, 1, 1, 1] : [];
-        console.log(`
+        if (this.trace) {
+          console.log(`
 === SAVE: Parsing callStack (length=${this.callStack.length}) ===`);
-        console.log(`Current PC: 0x${pc.toString(16)}`);
-        console.log(`Current localVariables (${this.localVariables.length}): [${this.localVariables.map((v) => "0x" + v.toString(16)).join(", ")}]`);
+          console.log(`Current PC: 0x${pc.toString(16)}`);
+          console.log(`Current localVariables (${this.localVariables.length}): [${this.localVariables.map((v) => "0x" + v.toString(16)).join(", ")}]`);
+        }
         const callStackEntries = [];
         let idx = this.callStack.length;
         while (idx > 0) {
@@ -3172,9 +3188,11 @@ var require_ZMachine = __commonJS({
             storeVar,
             locals
           });
-          console.log(`CallStackEntry[${callStackEntries.length - 1}]: returnPC=0x${returnPC.toString(16)}, storeVar=${storeVar}, locals(${locals.length})=[${locals.map((v) => "0x" + v.toString(16)).join(", ")}]`);
+          if (this.trace)
+            console.log(`CallStackEntry[${callStackEntries.length - 1}]: returnPC=0x${returnPC.toString(16)}, storeVar=${storeVar}, locals(${locals.length})=[${locals.map((v) => "0x" + v.toString(16)).join(", ")}]`);
         }
-        console.log(`
+        if (this.trace)
+          console.log(`
 Total callStackEntries: ${callStackEntries.length}
 `);
         const frames = [];
@@ -3271,7 +3289,7 @@ Total callStackEntries: ${callStackEntries.length}
       async restoreFromSave(saveData) {
         let cleanMemory = null;
         if (this.runtime === "node") {
-          const { readFile } = await Promise.resolve().then(() => __importStar(require("fs/promises")));
+          const { readFile } = await Promise.resolve().then(() => __importStar(require_fs_stub()));
           cleanMemory = await readFile(this.filePath);
         }
         if (this.runtime === "browser") {
@@ -3461,7 +3479,7 @@ Total callStackEntries: ${callStackEntries.length}
       }
       async load() {
         if (this.runtime === "node") {
-          const { readFile } = await Promise.resolve().then(() => __importStar(require("fs/promises")));
+          const { readFile } = await Promise.resolve().then(() => __importStar(require_fs_stub()));
           this.memory = await readFile(this.filePath);
         }
         if (this.runtime === "browser") {
@@ -4026,14 +4044,187 @@ var require_core = __commonJS({
   }
 });
 
+// spectacles/host-core.js
+var require_host_core = __commonJS({
+  "spectacles/host-core.js"(exports2, module2) {
+    "use strict";
+    var Vt100Filter = class {
+      constructor(onText, onStatus) {
+        this.onText = onText;
+        this.onStatus = onStatus;
+        this.inStatus = false;
+        this.statusBuf = "";
+        this.pending = "";
+      }
+      feed(chunk) {
+        let s = this.pending + chunk;
+        this.pending = "";
+        let text = "";
+        let i = 0;
+        while (i < s.length) {
+          const c = s[i];
+          if (c !== "\x1B") {
+            if (this.inStatus) this.statusBuf += c;
+            else text += c;
+            i++;
+            continue;
+          }
+          if (i + 1 >= s.length) {
+            this.pending = s.slice(i);
+            break;
+          }
+          const next = s[i + 1];
+          if (next === "7") {
+            this.inStatus = true;
+            this.statusBuf = "";
+            i += 2;
+            continue;
+          }
+          if (next === "8") {
+            if (this.inStatus) {
+              const line = this.statusBuf.replace(/\s+/g, " ").trim();
+              if (line) this.onStatus?.(line);
+            }
+            this.inStatus = false;
+            this.statusBuf = "";
+            i += 2;
+            continue;
+          }
+          if (next === "[") {
+            let j = i + 2;
+            while (j < s.length && !(s[j] >= "@" && s[j] <= "~")) j++;
+            if (j >= s.length) {
+              this.pending = s.slice(i);
+              break;
+            }
+            i = j + 1;
+            continue;
+          }
+          i += 2;
+        }
+        if (text) this.onText?.(text);
+      }
+    };
+    var SpectaclesZDevice = class {
+      /**
+       * opts:
+       *   onText(str)    - clean game text (may be partial lines; includes \n)
+       *   onStatus(str)  - v3 status line, already normalized
+       *   onEcho(str)    - called with the command when input is consumed
+       *   rows           - reported screen height (default 24)
+       */
+      constructor(opts = {}) {
+        this.rows = opts.rows || 24;
+        this.onEcho = opts.onEcho;
+        this.filter = new Vt100Filter(opts.onText, opts.onStatus);
+        this.inputQueue = [];
+        this.pendingLine = null;
+        this.pendingChar = null;
+      }
+      /** UI entry point: submit a full command line. */
+      pushInput(line) {
+        if (this.pendingChar) {
+          const resolve = this.pendingChar;
+          this.pendingChar = null;
+          resolve("\r");
+          if (line.trim() !== "") this.inputQueue.push(line);
+          return;
+        }
+        if (this.pendingLine) {
+          const resolve = this.pendingLine;
+          this.pendingLine = null;
+          this.onEcho?.(line);
+          resolve(line);
+        } else {
+          this.inputQueue.push(line);
+        }
+      }
+      /** True when the game is blocked waiting for the player. */
+      get awaitingInput() {
+        return this.pendingLine !== null || this.pendingChar !== null;
+      }
+      // --- ZMInputOutputDevice interface ---
+      async readLine() {
+        if (this.inputQueue.length > 0) {
+          const line = this.inputQueue.shift();
+          this.onEcho?.(line);
+          return line;
+        }
+        return new Promise((resolve) => {
+          this.pendingLine = resolve;
+        });
+      }
+      async readChar() {
+        if (this.inputQueue.length > 0) return "\r";
+        return new Promise((resolve) => {
+          this.pendingChar = resolve;
+        });
+      }
+      async writeChar(c) {
+        this.filter.feed(c);
+      }
+      async writeString(s) {
+        this.filter.feed(s);
+      }
+      close() {
+      }
+    };
+    function runGame(opts) {
+      const { ZMachine: ZMachine2, gameBytes, device, onQuit, onError } = opts;
+      const yieldEvery = opts.yieldEvery || 2e4;
+      const yieldFn = opts.yieldFn || (() => Promise.resolve());
+      const zm = new ZMachine2(gameBytes, device);
+      let running = true;
+      (async () => {
+        try {
+          await zm.load();
+          let sinceYield = 0;
+          while (running) {
+            await zm.executeInstruction();
+            if (++sinceYield >= yieldEvery) {
+              sinceYield = 0;
+              await yieldFn();
+            }
+          }
+        } catch (err) {
+          running = false;
+          if (err instanceof Error && err.message === "QUIT") onQuit?.();
+          else onError?.(err);
+        }
+      })();
+      return {
+        zm,
+        device,
+        running: () => running,
+        stop: () => {
+          running = false;
+        }
+      };
+    }
+    module2.exports = { Vt100Filter, SpectaclesZDevice, runGame };
+  }
+});
+
 // spectacles/index.js
 var shims = require_shims();
 var g = shims.installShims();
 g.__TSZM_SPECTACLES__ = true;
 var { ZMachine } = require_core();
+var hostCore = require_host_core();
 module.exports = {
   ZMachine,
   shims,
+  SpectaclesZDevice: hostCore.SpectaclesZDevice,
+  Vt100Filter: hostCore.Vt100Filter,
+  /**
+   * One-call game start for the Lens host:
+   *   const host = createZHost({ gameBytes, onText, onStatus, onEcho, onQuit, onError, yieldFn });
+   *   host.device.pushInput("open mailbox");
+   */
+  createZHost(opts) {
+    const device = new hostCore.SpectaclesZDevice(opts);
+    return hostCore.runGame({ ...opts, ZMachine, device });
+  },
   /**
    * Wire persistence for @save/@restore. `storage` must provide
    * getItem(key) -> string|null|Promise and setItem(key, value) -> void|Promise.

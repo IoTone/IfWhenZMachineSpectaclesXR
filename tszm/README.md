@@ -53,3 +53,28 @@ bare `vm` context with no Node globals.
 
 Status: CZECH 425 tests / 0 failures (source and bundle); MiniZork (v3) and
 Adventure (v5) complete scripted walkthroughs incl. save/restore round-trips.
+
+## Lens integration (Phase 3)
+
+- `spectacles/host-core.js` (bundled) — `SpectaclesZDevice` implements the
+  interpreter's I/O interface: promise-based `readLine` fed by `pushInput()`,
+  VT100 filtering that splits output into clean game text (`onText`) and the
+  v3 status line (`onStatus`), plus a frame-yielding run loop (`createZHost`).
+  Verified in Node via `npm run test:host` and via the deployed Lens assets.
+- `tools/embed-game.js` — embeds a story file as a dependency-free CJS Lens
+  asset (`npm run embed:minizork` regenerates
+  `Lens/Assets/Application/Scripts/games/MiniZork.js`).
+- `Lens/Assets/Application/Scripts/ZMachineHost.ts` — the Lens component.
+
+### Scene setup (in Lens Studio)
+
+1. Add a SceneObject with a **Text** component for the transcript (enable
+   text wrapping; ~16 visible lines works well) and optionally a second Text
+   for the status line.
+2. Add **ZMachineHost** to any object; assign `outputText` / `statusText`.
+3. Wire input UI (SIK buttons, keyboard, voice) to `submitCommand(cmd)` —
+   or tick **autoDemo** to watch it play a MiniZork opening in Preview with
+   no input UI at all.
+
+Saves persist via `global.persistentStorageSystem` keyed by game
+release+serial, so each game gets its own save slot.

@@ -12,10 +12,22 @@ const g = shims.installShims();
 g.__TSZM_SPECTACLES__ = true;
 
 const { ZMachine } = require("../core/index.js");
+const hostCore = require("./host-core.js");
 
 module.exports = {
     ZMachine,
     shims,
+    SpectaclesZDevice: hostCore.SpectaclesZDevice,
+    Vt100Filter: hostCore.Vt100Filter,
+    /**
+     * One-call game start for the Lens host:
+     *   const host = createZHost({ gameBytes, onText, onStatus, onEcho, onQuit, onError, yieldFn });
+     *   host.device.pushInput("open mailbox");
+     */
+    createZHost(opts) {
+        const device = new hostCore.SpectaclesZDevice(opts);
+        return hostCore.runGame({ ...opts, ZMachine, device });
+    },
     /**
      * Wire persistence for @save/@restore. `storage` must provide
      * getItem(key) -> string|null|Promise and setItem(key, value) -> void|Promise.

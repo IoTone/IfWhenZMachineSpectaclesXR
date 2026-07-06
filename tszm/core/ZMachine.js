@@ -162,9 +162,11 @@ class ZMachine {
         // Frotz seems to expect a minimal eval stack (4 words of 0x0001) in the dummy frame.
         const needsDummyFrame = this.header.version <= 5 || this.header.version >= 7;
         const dummyFrameEvalStack = needsDummyFrame ? [1, 1, 1, 1] : [];
-        console.log(`\n=== SAVE: Parsing callStack (length=${this.callStack.length}) ===`);
-        console.log(`Current PC: 0x${pc.toString(16)}`);
-        console.log(`Current localVariables (${this.localVariables.length}): [${this.localVariables.map(v => '0x' + v.toString(16)).join(', ')}]`);
+        if (this.trace) {
+            console.log(`\n=== SAVE: Parsing callStack (length=${this.callStack.length}) ===`);
+            console.log(`Current PC: 0x${pc.toString(16)}`);
+            console.log(`Current localVariables (${this.localVariables.length}): [${this.localVariables.map(v => '0x' + v.toString(16)).join(', ')}]`);
+        }
         const callStackEntries = [];
         let idx = this.callStack.length;
         while (idx > 0) {
@@ -213,9 +215,11 @@ class ZMachine {
                 storeVar,
                 locals,
             });
-            console.log(`CallStackEntry[${callStackEntries.length - 1}]: returnPC=0x${returnPC.toString(16)}, storeVar=${storeVar}, locals(${locals.length})=[${locals.map(v => '0x' + v.toString(16)).join(', ')}]`);
+            if (this.trace)
+                console.log(`CallStackEntry[${callStackEntries.length - 1}]: returnPC=0x${returnPC.toString(16)}, storeVar=${storeVar}, locals(${locals.length})=[${locals.map(v => '0x' + v.toString(16)).join(', ')}]`);
         }
-        console.log(`\nTotal callStackEntries: ${callStackEntries.length}\n`);
+        if (this.trace)
+            console.log(`\nTotal callStackEntries: ${callStackEntries.length}\n`);
         // Step 2: Build Quetzal frames by correctly pairing returnPC/storeVar with locals
         const frames = [];
         // Build frames with shifted locals

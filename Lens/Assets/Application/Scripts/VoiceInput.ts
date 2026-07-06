@@ -1,0 +1,101 @@
+import { ZMachineHost } from "./ZMachineHost";
+
+/**
+ * Voice input for the Z-Machine: speech-to-text via VoiceML.
+ *
+ * Two triggers:
+ *  - Pinch-to-talk (Spectacles): hold right-hand pinch to listen, release to
+ *    stop. Armed via GestureModule when available.
+ *  - toggleListen(): call from any UI (e.g. the "Speak" menu button) to
+ *    start/stop listening — works in Preview with the microphone enabled.
+ *
+ * Final transcriptions are normalized (lowercase, punctuation stripped) and
+ * submitted to the interpreter as player commands.
+ */
+@component
+export class VoiceInput extends BaseScriptComponent {
+    @input
+    zmHost: ZMachineHost;
+
+    // @ts-ignore - require is provided by the Lens runtime
+    private vm: VoiceMLModule = require("LensStudio:VoiceMLModule");
+
+    private listening: boolean = false;
+    private micEnabledLogged: boolean = false;
+
+    onAwake() {
+        this.vm.onListeningUpdate.add((eventData: VoiceML.ListeningUpdateEventArgs) => {
+            if (eventData.transcription && eventData.isFinalTranscription) {
+                this.onFinalTranscription(eventData.transcription);
+            }
+        });
+        this.vm.onListeningError.add((eventData: VoiceML.ListeningErrorEventArgs) => {
+            print("VoiceInput error: " + eventData.error + " - " + eventData.description);
+            this.listening = false;
+        });
+        this.vm.onListeningEnabled.add(() => {
+            // Fires repeatedly in Preview; log once.
+            if (!this.micEnabledLogged) {
+                this.micEnabledLogged = true;
+                print("VoiceInput: microphone listening enabled");
+            }
+        });
+
+        // Spectacles pinch-to-talk; GestureModule is unavailable in some
+        // Preview configurations, so fall back to the Speak button silently.
+        try {
+            // @ts-ignore
+            const gestureModule: GestureModule = require("LensStudio:GestureModule");
+            gestureModule.getPinchDownEvent(GestureModule.HandType.Right).add(() => this.startListen());
+            gestureModule.getPinchUpEvent(GestureModule.HandType.Right).add(() => this.stopListen());
+            print("VoiceInput: right-hand pinch-to-talk armed");
+        } catch (e) {
+            print("VoiceInput: GestureModule unavailable, use the Speak button (" + e + ")");
+        }
+    }
+
+    /** UI entry point: toggle listening on/off (e.g. from the Speak button). */
+    public toggleListen(): void {
+        if (this.listening) {
+            this.stopListen();
+        } else {
+            this.startListen();
+        }
+    }
+
+    private startListen(): void {
+        if (this.listening) {
+            return;
+        }
+        this.listening = true;
+        const options = VoiceML.ListeningOptions.create();
+        options.shouldReturnAsrTranscription = true;
+        options.shouldReturnInterimAsrTranscription = false;
+        this.vm.startListening(options);
+        print("VoiceInput: listening...");
+    }
+
+    private stopListen(): void {
+        if (!this.listening) {
+            return;
+        }
+        this.listening = false;
+        this.vm.stopListening();
+        print("VoiceInput: stopped");
+    }
+
+    private onFinalTranscription(transcription: string): void {
+        const command = transcription
+            .toLowerCase()
+            .replace(/[^a-z0-9 ]/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+        if (command.length === 0) {
+            return;
+        }
+        print('VoiceInput: heard "' + command + '"');
+        if (this.zmHost) {
+            this.zmHost.submitCommand(command);
+        }
+    }
+}

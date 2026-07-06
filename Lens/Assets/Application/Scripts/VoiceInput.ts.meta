@@ -1,0 +1,44 @@
+- !<AssetImportMetadata/5b9b73de-cab3-44da-b848-6e6ae1653654>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> a24dbcbc-4dca-4a55-985d-22ddf3474b7c
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> a24dbcbc-4dca-4a55-985d-22ddf3474b7c
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 159a7046-201e-4bfa-90e9-34733229226a
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/159a7046-201e-4bfa-90e9-34733229226a>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 9f81f210-2916-40ee-99d9-2841d49a728a
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    zmHost: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - zmHost: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType zmHost
