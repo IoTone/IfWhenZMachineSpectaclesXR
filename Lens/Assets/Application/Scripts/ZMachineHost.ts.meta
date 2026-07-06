@@ -27,8 +27,10 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     autoDemo: false
+    illustration: false
     maxLines: false
     outputText: false
+    rigDistance: false
     statusText: false
     wrapColumn: false
   ScriptTypesHidden:
@@ -45,6 +47,8 @@
       maxLines: !<float> 16.000000
       wrapColumn: !<float> 42.000000
       autoDemo: false
+      illustration: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      rigDistance: !<float> 60.000000
   ScriptTypes:
     -
       {}
@@ -54,3 +58,5 @@
     - // @input float maxLines = 16
     - // @input float wrapColumn = 42
     - // @input bool autoDemo
+    - // @input SceneObject illustration
+    - // @input float rigDistance = 60

@@ -22,6 +22,8 @@ export class VoiceInput extends BaseScriptComponent {
 
     private listening: boolean = false;
     private micEnabledLogged: boolean = false;
+    /** Cooldown after a hard error so pinch noise can't cause a retry storm. */
+    private lastErrorTime: number = -10;
 
     onAwake() {
         this.vm.onListeningUpdate.add((eventData: VoiceML.ListeningUpdateEventArgs) => {
@@ -32,6 +34,15 @@ export class VoiceInput extends BaseScriptComponent {
         this.vm.onListeningError.add((eventData: VoiceML.ListeningErrorEventArgs) => {
             print("VoiceInput error: " + eventData.error + " - " + eventData.description);
             this.listening = false;
+            // @ts-ignore - getTime is a Lens runtime global
+            this.lastErrorTime = getTime();
+            // Release the session; otherwise the module stays "in use" and
+            // every retry fails with "Only a single VoiceML module is allowed".
+            try {
+                this.vm.stopListening();
+            } catch (e) {
+                // already stopped
+            }
         });
         this.vm.onListeningEnabled.add(() => {
             // Fires repeatedly in Preview; log once.
@@ -67,12 +78,23 @@ export class VoiceInput extends BaseScriptComponent {
         if (this.listening) {
             return;
         }
+        // @ts-ignore - getTime is a Lens runtime global
+        if (getTime() - this.lastErrorTime < 3.0) {
+            return; // cooling down after an error (e.g. mic permission denied)
+        }
         this.listening = true;
-        const options = VoiceML.ListeningOptions.create();
-        options.shouldReturnAsrTranscription = true;
-        options.shouldReturnInterimAsrTranscription = false;
-        this.vm.startListening(options);
-        print("VoiceInput: listening...");
+        try {
+            const options = VoiceML.ListeningOptions.create();
+            options.shouldReturnAsrTranscription = true;
+            options.shouldReturnInterimAsrTranscription = false;
+            this.vm.startListening(options);
+            print("VoiceInput: listening...");
+        } catch (e) {
+            this.listening = false;
+            // @ts-ignore
+            this.lastErrorTime = getTime();
+            print("VoiceInput: startListening failed: " + e);
+        }
     }
 
     private stopListen(): void {

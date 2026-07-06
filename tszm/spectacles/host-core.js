@@ -85,6 +85,79 @@ class Vt100Filter {
 }
 
 // ---------------------------------------------------------------------------
+// Scene context (dynamic noun menus)
+// ---------------------------------------------------------------------------
+// The Z-Machine object tree tells us what the player can currently see, which
+// lets the UI generate context-aware noun buttons every turn. The current room
+// comes from global G0 — the Z-spec (8.2) defines the v3 status line as "the
+// object whose number is in the first global variable", and Inform keeps the
+// same convention in later versions. The player is identified as the room
+// child with a self-referential name; inventory is that object's children.
+const PLAYER_NAMES = ["you", "yourself", "cretin", "adventurer", "player", "self"];
+
+function objGetChild(vm, id) {
+    const a = vm.getObjectAddress(id);
+    return vm.header.version <= 3 ? vm.memory.readUInt8(a + 6) : vm.memory.readUInt16BE(a + 10);
+}
+function objGetSibling(vm, id) {
+    const a = vm.getObjectAddress(id);
+    return vm.header.version <= 3 ? vm.memory.readUInt8(a + 5) : vm.memory.readUInt16BE(a + 8);
+}
+function objChildren(vm, id) {
+    const out = [];
+    let c = objGetChild(vm, id);
+    let guard = 0;
+    while (c !== 0 && guard++ < 128) {
+        out.push(c);
+        c = objGetSibling(vm, c);
+    }
+    return out;
+}
+
+/**
+ * Snapshot what the player can currently interact with.
+ * Returns { room, roomObjects: [{id,name}], inventory: [{id,name}] } or null
+ * (e.g. before the game has initialized its globals).
+ */
+function getSceneContext(zm) {
+    try {
+        if (!zm.memory || !zm.header) return null;
+        const roomId = zm.getGlobalVariableValue(16); // global G0
+        if (!roomId || roomId > 2000) return null; // sanity: not a real object
+        const roomName = zm.getObjectName(roomId);
+        if (!roomName || !roomName.trim()) return null;
+        const named = (id) => ({ id, name: (zm.getObjectName(id) || "").trim() });
+        // Include one level of container contents (e.g. the leaflet inside an
+        // opened mailbox). We can't reliably test the "open" attribute across
+        // games, so closed-container contents may appear too — the game just
+        // answers "you can't see that here", which is harmless.
+        const withContents = (ids) => {
+            const out = [];
+            for (const id of ids) {
+                out.push(id);
+                for (const inner of objChildren(zm, id)) {
+                    out.push(inner);
+                }
+            }
+            return out;
+        };
+        const kids = objChildren(zm, roomId).map(named).filter((o) => o.name);
+        let player = kids.find((o) => PLAYER_NAMES.indexOf(o.name.toLowerCase()) !== -1) || null;
+        if (player && zm.getPlayerObjectNumber() !== player.id) {
+            zm.setPlayerObjectNumber(player.id); // also fixes findPlayerParent/ZMCDN
+        }
+        const roomIds = kids.filter((o) => !player || o.id !== player.id).map((o) => o.id);
+        const roomObjects = withContents(roomIds).map(named).filter((o) => o.name);
+        const inventory = player
+            ? withContents(objChildren(zm, player.id)).map(named).filter((o) => o.name)
+            : [];
+        return { room: roomName.trim(), roomObjects, inventory };
+    } catch (err) {
+        return null; // never let context extraction break the game loop
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Device
 // ---------------------------------------------------------------------------
 class SpectaclesZDevice {
@@ -127,6 +200,12 @@ class SpectaclesZDevice {
     get awaitingInput() {
         return this.pendingLine !== null || this.pendingChar !== null;
     }
+    /** Drop any queued-but-not-yet-consumed commands (UI "clear" action). */
+    clearQueue() {
+        const dropped = this.inputQueue.length;
+        this.inputQueue = [];
+        return dropped;
+    }
     // --- ZMInputOutputDevice interface ---
     async readLine() {
         if (this.inputQueue.length > 0) {
@@ -136,6 +215,8 @@ class SpectaclesZDevice {
         }
         return new Promise((resolve) => {
             this.pendingLine = resolve;
+            // Now blocked on the player: let the host refresh contextual UI.
+            this.onAwaitInput?.();
         });
     }
     async readChar() {
@@ -177,6 +258,13 @@ function runGame(opts) {
     const yieldEvery = opts.yieldEvery || 20000;
     const yieldFn = opts.yieldFn || (() => Promise.resolve());
     const zm = new ZMachine(gameBytes, device);
+    // Fire opts.onPrompt(sceneContext) whenever the game waits for input, so
+    // the UI can rebuild its dynamic noun menu.
+    if (opts.onPrompt) {
+        device.onAwaitInput = () => {
+            opts.onPrompt(getSceneContext(zm));
+        };
+    }
     let running = true;
     (async () => {
         try {
@@ -203,7 +291,9 @@ function runGame(opts) {
         stop: () => {
             running = false;
         },
+        /** On-demand scene snapshot (also delivered via opts.onPrompt). */
+        sceneContext: () => getSceneContext(zm),
     };
 }
 
-module.exports = { Vt100Filter, SpectaclesZDevice, runGame };
+module.exports = { Vt100Filter, SpectaclesZDevice, runGame, getSceneContext };

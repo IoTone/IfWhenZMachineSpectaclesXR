@@ -4105,6 +4105,56 @@ var require_host_core = __commonJS({
         if (text) this.onText?.(text);
       }
     };
+    var PLAYER_NAMES = ["you", "yourself", "cretin", "adventurer", "player", "self"];
+    function objGetChild(vm, id) {
+      const a = vm.getObjectAddress(id);
+      return vm.header.version <= 3 ? vm.memory.readUInt8(a + 6) : vm.memory.readUInt16BE(a + 10);
+    }
+    function objGetSibling(vm, id) {
+      const a = vm.getObjectAddress(id);
+      return vm.header.version <= 3 ? vm.memory.readUInt8(a + 5) : vm.memory.readUInt16BE(a + 8);
+    }
+    function objChildren(vm, id) {
+      const out = [];
+      let c = objGetChild(vm, id);
+      let guard = 0;
+      while (c !== 0 && guard++ < 128) {
+        out.push(c);
+        c = objGetSibling(vm, c);
+      }
+      return out;
+    }
+    function getSceneContext(zm) {
+      try {
+        if (!zm.memory || !zm.header) return null;
+        const roomId = zm.getGlobalVariableValue(16);
+        if (!roomId || roomId > 2e3) return null;
+        const roomName = zm.getObjectName(roomId);
+        if (!roomName || !roomName.trim()) return null;
+        const named = (id) => ({ id, name: (zm.getObjectName(id) || "").trim() });
+        const withContents = (ids) => {
+          const out = [];
+          for (const id of ids) {
+            out.push(id);
+            for (const inner of objChildren(zm, id)) {
+              out.push(inner);
+            }
+          }
+          return out;
+        };
+        const kids = objChildren(zm, roomId).map(named).filter((o) => o.name);
+        let player = kids.find((o) => PLAYER_NAMES.indexOf(o.name.toLowerCase()) !== -1) || null;
+        if (player && zm.getPlayerObjectNumber() !== player.id) {
+          zm.setPlayerObjectNumber(player.id);
+        }
+        const roomIds = kids.filter((o) => !player || o.id !== player.id).map((o) => o.id);
+        const roomObjects = withContents(roomIds).map(named).filter((o) => o.name);
+        const inventory = player ? withContents(objChildren(zm, player.id)).map(named).filter((o) => o.name) : [];
+        return { room: roomName.trim(), roomObjects, inventory };
+      } catch (err) {
+        return null;
+      }
+    }
     var SpectaclesZDevice = class {
       /**
        * opts:
@@ -4143,6 +4193,12 @@ var require_host_core = __commonJS({
       get awaitingInput() {
         return this.pendingLine !== null || this.pendingChar !== null;
       }
+      /** Drop any queued-but-not-yet-consumed commands (UI "clear" action). */
+      clearQueue() {
+        const dropped = this.inputQueue.length;
+        this.inputQueue = [];
+        return dropped;
+      }
       // --- ZMInputOutputDevice interface ---
       async readLine() {
         if (this.inputQueue.length > 0) {
@@ -4152,6 +4208,7 @@ var require_host_core = __commonJS({
         }
         return new Promise((resolve) => {
           this.pendingLine = resolve;
+          this.onAwaitInput?.();
         });
       }
       async readChar() {
@@ -4174,6 +4231,11 @@ var require_host_core = __commonJS({
       const yieldEvery = opts.yieldEvery || 2e4;
       const yieldFn = opts.yieldFn || (() => Promise.resolve());
       const zm = new ZMachine2(gameBytes, device);
+      if (opts.onPrompt) {
+        device.onAwaitInput = () => {
+          opts.onPrompt(getSceneContext(zm));
+        };
+      }
       let running = true;
       (async () => {
         try {
@@ -4198,10 +4260,12 @@ var require_host_core = __commonJS({
         running: () => running,
         stop: () => {
           running = false;
-        }
+        },
+        /** On-demand scene snapshot (also delivered via opts.onPrompt). */
+        sceneContext: () => getSceneContext(zm)
       };
     }
-    module2.exports = { Vt100Filter, SpectaclesZDevice, runGame };
+    module2.exports = { Vt100Filter, SpectaclesZDevice, runGame, getSceneContext };
   }
 });
 

@@ -43,10 +43,21 @@ export class ZMachineHost extends BaseScriptComponent {
     @input
     autoDemo: boolean = false;
 
+    /** Optional: the illustration plane, positioned above the status line. */
+    @input
+    @allowUndefined
+    illustration: SceneObject;
+
+    /** Distance (cm) the whole rig sits in front of the user at start. */
+    @input
+    rigDistance: number = 60;
+
     private host: any = null;
     private tszm: any = null;
     private lines: string[] = [""];
     private loggedFirstText: boolean = false;
+    private lastContext: any = null;
+    private sceneContextListener: ((ctx: any) => void) | null = null;
     private demoCommands: string[] = [
         "open mailbox",
         "read leaflet",
@@ -63,7 +74,38 @@ export class ZMachineHost extends BaseScriptComponent {
     ];
 
     onAwake() {
-        this.createEvent("OnStartEvent").bind(() => this.startGame());
+        this.createEvent("OnStartEvent").bind(() => {
+            this.applyLayout();
+            this.startGame();
+        });
+    }
+
+    /**
+     * Code-driven layout: editor transform state proved unreliable to manage
+     * remotely, so the canonical layout lives here. All positions are local
+     * to the rig (this component's parent object), which is pushed
+     * `rigDistance` cm in front of the user.
+     *
+     *   illustration  (-6, 19)   art above everything
+     *   status        (-14, 12.5) room/score line
+     *   transcript    (-14, 6)    prose column, grows downward
+     *   actions panel (22, 6)     button columns, clear to the right
+     */
+    private applyLayout(): void {
+        const rig = this.getSceneObject().getParent();
+        if (rig) {
+            rig.getTransform().setLocalPosition(new vec3(0, 0, -this.rigDistance));
+        }
+        if (this.outputText) {
+            this.outputText.getSceneObject().getTransform().setLocalPosition(new vec3(-14, 6, 0));
+        }
+        if (this.statusText) {
+            this.statusText.getSceneObject().getTransform().setLocalPosition(new vec3(-14, 11, 0));
+        }
+        if (this.illustration) {
+            this.illustration.getTransform().setLocalPosition(new vec3(-6, 19, 0));
+            this.illustration.getTransform().setLocalScale(new vec3(12, 7.5, 1));
+        }
     }
 
     /** Public API: send a player command to the game. */
@@ -76,6 +118,28 @@ export class ZMachineHost extends BaseScriptComponent {
     /** True when the game is blocked waiting for the player. */
     public get awaitingInput(): boolean {
         return this.host ? this.host.device.awaitingInput : false;
+    }
+
+    /** Drop any commands queued while the game was busy (UI "clear"). */
+    public clearQueuedInput(): void {
+        if (this.host && this.host.device.clearQueue) {
+            const dropped = this.host.device.clearQueue();
+            if (dropped > 0) {
+                print("ZMachineHost: cleared " + dropped + " queued command(s)");
+            }
+        }
+    }
+
+    /**
+     * Register a listener for scene-context updates ({room, roomObjects,
+     * inventory}), delivered every time the game waits for input. Fires
+     * immediately with the latest context if one exists.
+     */
+    public setSceneContextListener(fn: (ctx: any) => void): void {
+        this.sceneContextListener = fn;
+        if (this.lastContext) {
+            fn(this.lastContext);
+        }
     }
 
     /** Public API: stop the current session and boot the game fresh. */
@@ -141,6 +205,14 @@ export class ZMachineHost extends BaseScriptComponent {
             onError: (e: any) => {
                 print("ZMachineHost fatal: " + e + (e && e.stack ? "\n" + e.stack : ""));
                 this.appendText("\n[Interpreter error - see logger]\n");
+            },
+            onPrompt: (ctx: any) => {
+                if (ctx) {
+                    this.lastContext = ctx;
+                    if (this.sceneContextListener) {
+                        this.sceneContextListener(ctx);
+                    }
+                }
             },
             // Yield to the render loop between instruction batches so a long
             // turn can't stall a frame.

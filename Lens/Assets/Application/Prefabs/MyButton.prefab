@@ -146,7 +146,6 @@
   ScriptAsset: !<reference> 173d7099-914c-4f24-ac1c-1b67a66ae138
   ScriptInputsDefault:
     _inactive: true
-    _playAudio: true
     _style: true
     _toggleable: true
     _defaultToOn: true
@@ -162,7 +161,7 @@
       _renderOrder: -1
       _size: !<Vec3> {x: 7.000000, y: 4.000000, z: 1.000000}
       _inactive: false
-      _playAudio: false
+      _playAudio: true
       _style: PrimaryNeutral
       _toggleable: false
       _defaultToOn: false

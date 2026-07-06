@@ -13,11 +13,27 @@ export class BaseUIKitScrollButtonController extends BaseScriptComponent {
     public onHoveredEvent = new Event<boolean>();
     public onHovered = this.onHoveredEvent.publicApi();
 
+    private currentData: BaseScrollButtonData | null = null;
+    private eventsBound: boolean = false;
+
+    /**
+     * Assign (or re-assign) the data this button represents. Safe to call
+     * repeatedly on a pooled/reused button: UIKit event handlers are bound
+     * once and always dispatch the latest data.
+     */
     public setButtonData(scrollButtonData: BaseScrollButtonData): void {
+        this.currentData = scrollButtonData;
         if (this.uiKitButton != null) {
-            this.uiKitButton.onHoverEnter.add(() => this.onHoveredEvent.invoke(true));
-            this.uiKitButton.onHoverExit.add(() => this.onHoveredEvent.invoke(false));
-            this.uiKitButton.onTriggerDown.add(() => this.onButtonPressedEvent.invoke(scrollButtonData));
+            if (!this.eventsBound) {
+                this.eventsBound = true;
+                this.uiKitButton.onHoverEnter.add(() => this.onHoveredEvent.invoke(true));
+                this.uiKitButton.onHoverExit.add(() => this.onHoveredEvent.invoke(false));
+                this.uiKitButton.onTriggerDown.add(() => {
+                    if (this.currentData) {
+                        this.onButtonPressedEvent.invoke(this.currentData);
+                    }
+                });
+            }
             this.buttonText.text = scrollButtonData.buttonText;
             this.applyCustomSettings(scrollButtonData);
         }

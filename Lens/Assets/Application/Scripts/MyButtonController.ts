@@ -3,10 +3,10 @@ import { BaseUIKitScrollButtonController } from "LocalJoost/Ui/ScrollWindow/Scri
 
 @component
 export class MyButtonController extends BaseUIKitScrollButtonController {
+    // Note: do not bind uiKitButton events here — setButtonData is called
+    // repeatedly on pooled buttons and the base class already dispatches
+    // onButtonPressed with the latest data.
     protected applyCustomSettings(scrollButtonData: BaseScrollButtonData): void {
         super.applyCustomSettings(scrollButtonData);
-        this.uiKitButton.onTriggerDown.add(() => {
-            print("From MyButtonController: button pressed: " + scrollButtonData.buttonText);
-        });
     }
 }
