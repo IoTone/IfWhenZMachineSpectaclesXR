@@ -58,6 +58,8 @@ export class ZMachineHost extends BaseScriptComponent {
     private loggedFirstText: boolean = false;
     private lastContext: any = null;
     private sceneContextListener: ((ctx: any) => void) | null = null;
+    private narrationListener: ((text: string) => void) | null = null;
+    private turnBuffer: string = "";
     private demoCommands: string[] = [
         "open mailbox",
         "read leaflet",
@@ -142,6 +144,21 @@ export class ZMachineHost extends BaseScriptComponent {
         }
     }
 
+    /**
+     * Register a listener that receives each completed turn's game text
+     * (accumulated between input prompts) — used for TTS narration. If a
+     * completed turn's text is already pending (the game boots before the
+     * narrator registers), it is delivered immediately.
+     */
+    public setNarrationListener(fn: (text: string) => void): void {
+        this.narrationListener = fn;
+        const pending = this.turnBuffer.replace(/\s+/g, " ").trim();
+        if (pending.length > 0 && this.awaitingInput) {
+            this.turnBuffer = "";
+            fn(pending);
+        }
+    }
+
     /** Public API: stop the current session and boot the game fresh. */
     public restartGame(): void {
         if (this.host) {
@@ -194,7 +211,10 @@ export class ZMachineHost extends BaseScriptComponent {
         const game = miniZorkModule;
         this.host = this.tszm.createZHost({
             gameBytes: game.getBytes(),
-            onText: (t: string) => this.appendText(t),
+            onText: (t: string) => {
+                this.appendText(t);
+                this.turnBuffer += t;
+            },
             onEcho: (cmd: string) => this.appendText("> " + cmd + "\n"),
             onStatus: (s: string) => {
                 if (this.statusText) {
@@ -212,6 +232,18 @@ export class ZMachineHost extends BaseScriptComponent {
                     if (this.sceneContextListener) {
                         this.sceneContextListener(ctx);
                     }
+                }
+                // Turn is complete: hand the accumulated text to the narrator.
+                // With no narrator registered yet, keep the buffer (capped) so
+                // a late-registering narrator can speak the opening text.
+                if (this.narrationListener) {
+                    const turnText = this.turnBuffer.replace(/\s+/g, " ").trim();
+                    this.turnBuffer = "";
+                    if (turnText.length > 0) {
+                        this.narrationListener(turnText);
+                    }
+                } else if (this.turnBuffer.length > 2000) {
+                    this.turnBuffer = this.turnBuffer.slice(-2000);
                 }
             },
             // Yield to the render loop between instruction batches so a long

@@ -119,7 +119,7 @@ function objChildren(vm, id) {
  * Returns { room, roomObjects: [{id,name}], inventory: [{id,name}] } or null
  * (e.g. before the game has initialized its globals).
  */
-function getSceneContext(zm) {
+function getSceneContext(zm, visibleText) {
     try {
         if (!zm.memory || !zm.header) return null;
         const roomId = zm.getGlobalVariableValue(16); // global G0
@@ -127,16 +127,25 @@ function getSceneContext(zm) {
         const roomName = zm.getObjectName(roomId);
         if (!roomName || !roomName.trim()) return null;
         const named = (id) => ({ id, name: (zm.getObjectName(id) || "").trim() });
-        // Include one level of container contents (e.g. the leaflet inside an
-        // opened mailbox). We can't reliably test the "open" attribute across
-        // games, so closed-container contents may appear too — the game just
-        // answers "you can't see that here", which is harmless.
+        // Include one level of container contents (e.g. the leaflet inside a
+        // mailbox) — but only once the story text has actually mentioned the
+        // item, so the menu never spoils unrevealed contents. We can't read
+        // the game-specific "open" attribute; the narrative itself is the
+        // player-visible source of truth ("Opening the mailbox reveals a
+        // leaflet"). `visibleText` is the lowercased text seen in this room.
+        const revealed = (id) => {
+            if (!visibleText) return false;
+            const name = (zm.getObjectName(id) || "").trim().toLowerCase();
+            return name.length > 0 && visibleText.indexOf(name) !== -1;
+        };
         const withContents = (ids) => {
             const out = [];
             for (const id of ids) {
                 out.push(id);
                 for (const inner of objChildren(zm, id)) {
-                    out.push(inner);
+                    if (revealed(inner)) {
+                        out.push(inner);
+                    }
                 }
             }
             return out;
@@ -171,10 +180,35 @@ class SpectaclesZDevice {
     constructor(opts = {}) {
         this.rows = opts.rows || 24;
         this.onEcho = opts.onEcho;
-        this.filter = new Vt100Filter(opts.onText, opts.onStatus);
+        // Track the story text the player has actually seen. `turnText` holds
+        // the current turn; `seenText` accumulates for the current room and is
+        // used to decide which container contents have been revealed (no
+        // spoiler buttons for items the game hasn't mentioned yet).
+        this.turnText = "";
+        this.seenText = "";
+        const userOnText = opts.onText;
+        this.filter = new Vt100Filter((t) => {
+            this.turnText += t.toLowerCase();
+            if (this.turnText.length > 8000) {
+                this.turnText = this.turnText.slice(-8000);
+            }
+            userOnText?.(t);
+        }, opts.onStatus);
         this.inputQueue = [];
         this.pendingLine = null; // resolver waiting for a full line
         this.pendingChar = null; // resolver waiting for a single key
+    }
+    /** Fold the completed turn's text into the room's seen-text history. */
+    commitTurnText(roomChanged) {
+        if (roomChanged) {
+            this.seenText = this.turnText; // fresh room: only this turn's text
+        } else {
+            this.seenText += this.turnText;
+            if (this.seenText.length > 16000) {
+                this.seenText = this.seenText.slice(-16000);
+            }
+        }
+        this.turnText = "";
     }
     /** UI entry point: submit a full command line. */
     pushInput(line) {
@@ -259,10 +293,19 @@ function runGame(opts) {
     const yieldFn = opts.yieldFn || (() => Promise.resolve());
     const zm = new ZMachine(gameBytes, device);
     // Fire opts.onPrompt(sceneContext) whenever the game waits for input, so
-    // the UI can rebuild its dynamic noun menu.
+    // the UI can rebuild its dynamic noun menu. Turn text is folded into the
+    // room's seen-text history first (resetting on room change) so revealed
+    // container contents can be surfaced without spoiling unrevealed ones.
+    let lastRoom = null;
     if (opts.onPrompt) {
         device.onAwaitInput = () => {
-            opts.onPrompt(getSceneContext(zm));
+            const preview = getSceneContext(zm, device.seenText + device.turnText);
+            const roomChanged = preview !== null && preview.room !== lastRoom;
+            if (preview !== null) {
+                lastRoom = preview.room;
+            }
+            device.commitTurnText(roomChanged);
+            opts.onPrompt(getSceneContext(zm, device.seenText));
         };
     }
     let running = true;
@@ -292,7 +335,7 @@ function runGame(opts) {
             running = false;
         },
         /** On-demand scene snapshot (also delivered via opts.onPrompt). */
-        sceneContext: () => getSceneContext(zm),
+        sceneContext: () => getSceneContext(zm, device.seenText),
     };
 }
 

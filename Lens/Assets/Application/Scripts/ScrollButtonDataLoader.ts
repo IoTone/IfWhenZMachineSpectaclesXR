@@ -2,6 +2,7 @@ import { BaseScrollButtonData } from "LocalJoost/Ui/ScrollWindow/Scripts/BaseScr
 import { UIKitScrollMenuController } from "LocalJoost/Ui/ScrollWindow/Scripts/UIKitScrollMenuController";
 import { ZMachineHost } from "./ZMachineHost";
 import { VoiceInput } from "./VoiceInput";
+import { Narrator } from "./Narrator";
 
 /**
  * Drives the scroll menu as a grammar-guided Z-Machine command builder.
@@ -46,6 +47,10 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
     @input
     @allowUndefined
     voiceInput: VoiceInput;
+
+    @input
+    @allowUndefined
+    narrator: Narrator;
 
     /** Menu header used as the command preview ("take ___"). */
     @input
@@ -111,6 +116,7 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
             buttons.push(this.button(d, "verb", d.toLowerCase(), false));
         }
         buttons.push(this.button("Speak", "meta", "speak"));
+        buttons.push(this.button(this.narrator && this.narrator.isOn ? "Narrate: On" : "Narrate: Off", "meta", "narrate"));
         buttons.push(this.button("Clear", "meta", "clear"));
         buttons.push(this.button("Save", "verb", "save", false));
         buttons.push(this.button("Restore", "verb", "restore", false));
@@ -131,6 +137,11 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
                 }
             } else if (data.command === "newgame" && this.zmHost) {
                 this.zmHost.restartGame();
+            } else if (data.command === "narrate") {
+                if (this.narrator) {
+                    this.narrator.toggle();
+                    this.rebuild(); // refresh the On/Off label
+                }
             } else if (data.command === "clear") {
                 // Reset the command builder and drop any queued commands.
                 this.pendingVerb = null;

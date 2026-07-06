@@ -4124,7 +4124,7 @@ var require_host_core = __commonJS({
       }
       return out;
     }
-    function getSceneContext(zm) {
+    function getSceneContext(zm, visibleText) {
       try {
         if (!zm.memory || !zm.header) return null;
         const roomId = zm.getGlobalVariableValue(16);
@@ -4132,12 +4132,19 @@ var require_host_core = __commonJS({
         const roomName = zm.getObjectName(roomId);
         if (!roomName || !roomName.trim()) return null;
         const named = (id) => ({ id, name: (zm.getObjectName(id) || "").trim() });
+        const revealed = (id) => {
+          if (!visibleText) return false;
+          const name = (zm.getObjectName(id) || "").trim().toLowerCase();
+          return name.length > 0 && visibleText.indexOf(name) !== -1;
+        };
         const withContents = (ids) => {
           const out = [];
           for (const id of ids) {
             out.push(id);
             for (const inner of objChildren(zm, id)) {
-              out.push(inner);
+              if (revealed(inner)) {
+                out.push(inner);
+              }
             }
           }
           return out;
@@ -4166,10 +4173,31 @@ var require_host_core = __commonJS({
       constructor(opts = {}) {
         this.rows = opts.rows || 24;
         this.onEcho = opts.onEcho;
-        this.filter = new Vt100Filter(opts.onText, opts.onStatus);
+        this.turnText = "";
+        this.seenText = "";
+        const userOnText = opts.onText;
+        this.filter = new Vt100Filter((t) => {
+          this.turnText += t.toLowerCase();
+          if (this.turnText.length > 8e3) {
+            this.turnText = this.turnText.slice(-8e3);
+          }
+          userOnText?.(t);
+        }, opts.onStatus);
         this.inputQueue = [];
         this.pendingLine = null;
         this.pendingChar = null;
+      }
+      /** Fold the completed turn's text into the room's seen-text history. */
+      commitTurnText(roomChanged) {
+        if (roomChanged) {
+          this.seenText = this.turnText;
+        } else {
+          this.seenText += this.turnText;
+          if (this.seenText.length > 16e3) {
+            this.seenText = this.seenText.slice(-16e3);
+          }
+        }
+        this.turnText = "";
       }
       /** UI entry point: submit a full command line. */
       pushInput(line) {
@@ -4231,9 +4259,16 @@ var require_host_core = __commonJS({
       const yieldEvery = opts.yieldEvery || 2e4;
       const yieldFn = opts.yieldFn || (() => Promise.resolve());
       const zm = new ZMachine2(gameBytes, device);
+      let lastRoom = null;
       if (opts.onPrompt) {
         device.onAwaitInput = () => {
-          opts.onPrompt(getSceneContext(zm));
+          const preview = getSceneContext(zm, device.seenText + device.turnText);
+          const roomChanged = preview !== null && preview.room !== lastRoom;
+          if (preview !== null) {
+            lastRoom = preview.room;
+          }
+          device.commitTurnText(roomChanged);
+          opts.onPrompt(getSceneContext(zm, device.seenText));
         };
       }
       let running = true;
@@ -4262,7 +4297,7 @@ var require_host_core = __commonJS({
           running = false;
         },
         /** On-demand scene snapshot (also delivered via opts.onPrompt). */
-        sceneContext: () => getSceneContext(zm)
+        sceneContext: () => getSceneContext(zm, device.seenText)
       };
     }
     module2.exports = { Vt100Filter, SpectaclesZDevice, runGame, getSceneContext };
