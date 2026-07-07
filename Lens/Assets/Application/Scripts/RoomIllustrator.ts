@@ -88,30 +88,40 @@ export class RoomIllustrator extends BaseScriptComponent {
             // Code-driven layout: park the spatial frame at the illustration
             // slot above the status line (local to the IFThen rig).
             if (this.spatialFrame) {
+                // Slightly in front of the flat plane: when the mesh renders
+                // it covers the flat image; when it doesn't, the flat remains.
                 this.spatialFrame
                     .getSceneObject()
                     .getTransform()
-                    .setLocalPosition(new vec3(-6, 19, 0));
+                    .setLocalPosition(new vec3(-6, 19, 2));
                 // Size the portal to the illustration slot; component defaults
                 // (frameHeight 60, frameOffset -100) render a room-sized
                 // backdrop a meter behind the rig.
-                try {
-                    (this.spatialFrame as any).setMaterialProperties(
-                        this.spatialHeight,
-                        this.spatialOffset,
-                        this.spatialDepth
-                    );
-                } catch (e) {
-                    print("RoomIllustrator: could not size spatial frame (" + e + ")");
+                // spatialHeight <= 0 means: keep the component's native
+                // portal size (frameHeight 100 / offset -200 / depth 100 —
+                // the large backdrop look). Set a positive height to shrink.
+                if (this.spatialHeight > 0) {
+                    try {
+                        const offset =
+                            this.spatialOffset !== 0
+                                ? this.spatialOffset
+                                : (-200 * this.spatialHeight) / 100;
+                        const depth = this.spatialDepth > 0 ? this.spatialDepth : this.spatialHeight;
+                        (this.spatialFrame as any).setMaterialProperties(this.spatialHeight, offset, depth);
+                        print("RoomIllustrator: spatial portal h=" + this.spatialHeight + " off=" + offset + " d=" + depth);
+                    } catch (e) {
+                        print("RoomIllustrator: could not size spatial frame (" + e + ")");
+                    }
+                } else {
+                    print("RoomIllustrator: spatial portal at native size");
                 }
                 // Progressive display: the flat plane stays visible until the
                 // spatialized mesh has actually loaded.
                 try {
                     (this.spatialFrame as any).onLoaded.add(() => {
+                        // Keep the flat image enabled as a backstop; the
+                        // spatial portal sits in front and covers it.
                         print("RoomIllustrator: spatialized mesh ready");
-                        if (this.flatImage) {
-                            this.flatImage.getSceneObject().enabled = false;
-                        }
                     });
                 } catch (e) {
                     print("RoomIllustrator: no onLoaded event (" + e + ")");

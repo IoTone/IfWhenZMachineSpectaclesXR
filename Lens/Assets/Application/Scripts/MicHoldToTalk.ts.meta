@@ -1,0 +1,50 @@
+- !<AssetImportMetadata/f4f40661-407a-4b37-839b-8f87ee14dd64>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> d74f86c0-c888-4530-88f4-819a68b91747
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> d74f86c0-c888-4530-88f4-819a68b91747
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> bf4aefb7-963f-4c4f-b3ed-bf4a32ac8c29
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/bf4aefb7-963f-4c4f-b3ed-bf4a32ac8c29>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 791298ef-15ec-4065-b205-cec319abae65
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    interactable: false
+    micScale: false
+    voiceInput: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - voiceInput: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      interactable: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      micScale: !<float> 26.000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType voiceInput
+    - // @input AssignableType_1 interactable
+    - // @input float micScale = 0.3
