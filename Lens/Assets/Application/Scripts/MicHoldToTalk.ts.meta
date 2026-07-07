@@ -27,7 +27,6 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     interactable: false
-    micScale: false
     voiceInput: false
   ScriptTypesHidden:
     {}
@@ -40,11 +39,9 @@
   DefaultScriptInputs:
     - voiceInput: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
       interactable: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
-      micScale: !<float> 26.000000
   ScriptTypes:
     -
       {}
   InputLines:
     - // @input AssignableType voiceInput
     - // @input AssignableType_1 interactable
-    - // @input float micScale = 0.3

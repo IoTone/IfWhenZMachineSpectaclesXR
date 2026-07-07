@@ -31,7 +31,7 @@ export class QuickButtons extends BaseScriptComponent {
 
     /** Local Y position under the menu window (frame is ~24 units tall). */
     @input
-    yPosition: number = -16;
+    yPosition: number = -20;
 
     private speakController: BaseUIKitScrollButtonController | null = null;
     private wasListening: boolean = false;

@@ -53,4 +53,4 @@
     - // @input SceneObject menuRoot
     - // @input AssignableType voiceInput
     - // @input AssignableType_1 loader
-    - // @input float yPosition = -16
+    - // @input float yPosition = -20

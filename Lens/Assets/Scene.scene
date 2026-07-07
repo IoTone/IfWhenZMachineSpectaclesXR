@@ -249,6 +249,32 @@
   ScriptTypes:
     "":
       {}
+- !<ScriptComponent/093996fe-f7ba-4f7b-9fc4-2f8eb9d27955>
+  PrefabRemaps:
+    []
+  Name: InteractableAudioFeedback
+  Enabled: true
+  ScriptAsset: !<reference> 1ad7da86-2c32-418c-bdf1-b7150c07c912
+  ScriptInputsDefault:
+    _playAudioOnHover: true
+    _hoverAudioTrack: true
+    _playAudioOnTriggerStart: true
+    _triggerStartAudioTrack: true
+    _playAudioOnTriggerEnd: true
+    _triggerEndAudioTrack: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      _playAudioOnHover: false
+      _hoverAudioTrack: !<reference.AudioTrackAsset> 97bf97ae-b2da-47d7-bde6-003f597fe888
+      _playAudioOnTriggerStart: true
+      _triggerStartAudioTrack: !<reference.AudioTrackAsset> edad7d53-55da-40b1-9025-fad0e7207862
+      _playAudioOnTriggerEnd: true
+      _triggerEndAudioTrack: !<reference.AudioTrackAsset> 82028831-1631-4d7b-b548-ff6be4e0a2ba
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/0acf040c-7af5-40d5-9ba0-7b91c32b5092>
   PrefabRemaps:
     []
@@ -441,7 +467,6 @@
   Enabled: true
   ScriptAsset: !<reference> 652e631a-22d0-4941-9f74-2943df59f34c
   ScriptInputsDefault:
-    targetingMode: true
     targetingVisual: true
     ignoreInteractionPlane: true
     keepHoverOnTrigger: true
@@ -457,7 +482,7 @@
     {}
   ScriptInputs:
     "":
-      targetingMode: !<float> 3.000000
+      targetingMode: !<float> 7.000000
       targetingVisual: !<float> 1.000000
       ignoreInteractionPlane: false
       keepHoverOnTrigger: false
@@ -648,9 +673,9 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
+    Position: {x: 20.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: -90.000000, z: 0.000000}
+    Scale: {x: 5.000000, y: 5.000000, z: 5.000000}
     HasSegmentScaleCompensation: false
   Children:
     - !<own> 70fe576a-8c80-434f-bec9-700e497700c7
@@ -658,6 +683,9 @@
     - !<own> db28a13c-f0bd-4aff-b028-abb723870f87
     - !<own> 18808018-b363-4991-9763-b5cf7efe231f
     - !<own> b0664859-76b9-4d23-a5fe-a706b05288e6
+    - !<own> 093996fe-f7ba-4f7b-9fc4-2f8eb9d27955
+    - !<own> 9a8b6800-009f-4d60-bec7-35e4e2048e28
+    - !<own> 56191ca4-9771-4cc5-911f-1ff443fc5286
 - !<SceneObject/2546fde6-2599-42d9-a107-c6e19b65c56a>
   PrefabRemaps:
     []
@@ -1507,7 +1535,7 @@
   Enabled: true
   ScriptAsset: !<reference> 41401b7d-e510-4489-88d5-cf79c3c639ed
   ScriptInputsDefault:
-    yPosition: true
+    {}
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -1516,7 +1544,7 @@
       menuRoot: !<reference.SceneObject> 5dbb3cf3-4416-4dd4-a1b5-68de1258e1b6
       voiceInput: !<MappingBased.AssignableType> 04c8b8f6-607e-440f-93dc-e808ab404c3c
       loader: !<MappingBased.AssignableType_1> 254b2085-95f1-41a4-8ae3-97cf3f8d08e9
-      yPosition: !<float> -16.000000
+      yPosition: !<float> -20.000000
   ScriptTypes:
     "":
       {}
@@ -1634,6 +1662,31 @@
       directColliderEnterRadius: !<float> 1.000000
       directColliderExitRadius: 1.500000
       directDragThreshold: !<float> 3.000000
+  ScriptTypes:
+    "":
+      {}
+- !<ScriptComponent/56191ca4-9771-4cc5-911f-1ff443fc5286>
+  PrefabRemaps:
+    []
+  Name: InteractableOutlineFeedback
+  Enabled: true
+  ScriptAsset: !<reference> 657cbbe5-2a9c-4889-93fb-fd72ba8a1d52
+  ScriptInputsDefault:
+    targetOutlineMaterial: true
+    hoveringColor: true
+    activatingColor: true
+    outlineWeight: true
+    meshVisuals: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      targetOutlineMaterial: !<reference.Material> 7ac80b6c-979a-4a00-a694-099f296be161
+      hoveringColor: !<Vec4> {x: 1.000000, y: 1.000000, z: 0.040000, w: 1.000000}
+      activatingColor: !<Vec4> {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+      outlineWeight: -0.250000
+      meshVisuals: !<reference.RenderMeshVisual[]>
+        []
   ScriptTypes:
     "":
       {}
@@ -2759,6 +2812,31 @@
     []
   Components:
     []
+- !<ScriptComponent/9a8b6800-009f-4d60-bec7-35e4e2048e28>
+  PrefabRemaps:
+    []
+  Name: InteractableColorFeedback
+  Enabled: true
+  ScriptAsset: !<reference> ad94751b-0846-4ee3-af41-7b0eb49b2e2c
+  ScriptInputsDefault:
+    defaultColor: true
+    hoverColor: true
+    pinchedColor: true
+    disabledColor: true
+    meshVisuals: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      defaultColor: !<Vec4> {x: 0.280000, y: 0.280000, z: 0.280000, w: 1.000000}
+      hoverColor: !<Vec4> {x: 0.280000, y: 0.280000, z: 0.280000, w: 1.000000}
+      pinchedColor: !<Vec4> {x: 0.460000, y: 0.460000, z: 0.460000, w: 1.000000}
+      disabledColor: !<Vec4> {x: 1.000000, y: 1.000000, z: 1.000000, w: 0.000000}
+      meshVisuals: !<reference.RenderMeshVisual[]>
+        []
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/9b8da751-599e-41c3-bebf-7b11dadee25a>
   PrefabRemaps:
     []
@@ -3123,7 +3201,6 @@
     "":
       voiceInput: !<MappingBased.AssignableType> 04c8b8f6-607e-440f-93dc-e808ab404c3c
       interactable: !<MappingBased.AssignableType_1> 18808018-b363-4991-9763-b5cf7efe231f
-      micScale: 0.300000
   ScriptTypes:
     "":
       {}
@@ -3973,7 +4050,7 @@
   Name: Physics Collider
   Enabled: true
   Shape: !<Sphere>
-    FitVisual: true
+    FitVisual: false
     Radius: 6.000000
   Matter: !<reference> 00000000-0000-0000-0000-000000000000
   Filter: !<reference> 00000000-0000-0000-0000-000000000000

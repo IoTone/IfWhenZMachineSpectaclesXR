@@ -22,23 +22,19 @@ export class MicHoldToTalk extends BaseScriptComponent {
     @input
     interactable: Interactable;
 
-    /** Overall prop scale (Sketchfab import chains are wildly sized). */
-    @input
-    micScale: number = 0.3;
-
     onAwake() {
         this.createEvent("OnStartEvent").bind(() => {
-            // Code-driven placement (editor transform writes proved flaky):
-            // right of the transcript, below eye level, within arm's reach.
-            const t = this.getSceneObject().getTransform();
-            t.setLocalPosition(new vec3(16, -14, 10));
-            t.setLocalScale(new vec3(this.micScale, this.micScale, this.micScale));
-            // The grab sphere must cover the (rescaled) mesh: collider radius
-            // is in local units, so compensate for the small object scale.
+            // Position/scale come from the editor transform (single source of
+            // truth — code overrides fought the Inspector and always won).
+            // Only the grab sphere is code-managed: collider radius is in
+            // local units, so compensate for the object scale to keep a
+            // consistent world-size grab zone the user is never inside of.
             try {
+                const scale = Math.max(this.getSceneObject().getTransform().getLocalScale().x, 0.001);
                 const collider = this.getSceneObject().getComponent("Physics.ColliderComponent");
                 if (collider && (collider as any).shape) {
-                    ((collider as any).shape as any).radius = 40; // ~12cm at scale 0.3
+                    const maxWorldRadius = 60; // cm
+                    ((collider as any).shape as any).radius = Math.min(40, maxWorldRadius / scale);
                 }
             } catch (e) {
                 print("MicHoldToTalk: could not resize collider (" + e + ")");
@@ -47,17 +43,23 @@ export class MicHoldToTalk extends BaseScriptComponent {
                 print("MicHoldToTalk: no interactable assigned");
                 return;
             }
+            this.interactable.onHoverEnter.add(() => {
+                print("MicHoldToTalk: hover");
+            });
             this.interactable.onTriggerStart.add(() => {
+                print("MicHoldToTalk: trigger start - listening");
                 if (this.voiceInput) {
                     this.voiceInput.holdStart();
                 }
             });
             this.interactable.onTriggerEnd.add(() => {
+                print("MicHoldToTalk: trigger end - submitting");
                 if (this.voiceInput) {
                     this.voiceInput.holdEnd();
                 }
             });
             this.interactable.onTriggerCanceled.add(() => {
+                print("MicHoldToTalk: trigger canceled");
                 if (this.voiceInput) {
                     this.voiceInput.holdEnd();
                 }
