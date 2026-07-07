@@ -1,5 +1,9 @@
 import { Imagen } from "RemoteServiceGateway.lspkg/HostedExternal/Imagen";
 import { GoogleGenAITypes } from "RemoteServiceGateway.lspkg/HostedExternal/GoogleGenAITypes";
+import {
+    RemoteServiceGatewayCredentials,
+    AvaliableApiTypes,
+} from "RemoteServiceGateway.lspkg/RemoteServiceGatewayCredentials";
 import { ZMachineHost } from "./ZMachineHost";
 
 /**
@@ -36,6 +40,16 @@ export class RoomIllustrator extends BaseScriptComponent {
     @allowUndefined
     spatialFrame: ScriptComponent;
 
+    /**
+     * The RemoteServiceGatewayCredentials component in the scene. The package
+     * exists twice in the project's module graph, so the component's own
+     * awake-time static copy can land in the wrong module instance; we copy
+     * its token inputs into the instance Imagen actually imports.
+     */
+    @input
+    @allowUndefined
+    credentials: ScriptComponent;
+
     @input
     @widget(new TextAreaWidget())
     stylePrompt: string =
@@ -55,9 +69,21 @@ export class RoomIllustrator extends BaseScriptComponent {
         // @ts-ignore - Lens runtime global
         this.store = global.persistentStorageSystem ? global.persistentStorageSystem.store : null;
         this.createEvent("OnStartEvent").bind(() => {
+            // Fill the RSG token store up front: both Imagen and the Spatial
+            // Image queue read it, including on cache-hit paths that never
+            // call generate().
+            this.ensureCredentials();
+            // Code-driven layout: park the spatial frame at the illustration
+            // slot above the status line (local to the IFThen rig).
+            if (this.spatialFrame) {
+                this.spatialFrame
+                    .getSceneObject()
+                    .getTransform()
+                    .setLocalPosition(new vec3(-6, 19, 0));
+            }
             if (this.zmHost) {
                 this.zmHost.addSceneContextListener((ctx: any) => this.onContext(ctx));
-                print("RoomIllustrator: ready");
+                print("RoomIllustrator: ready" + (this.spatialFrame ? " (spatialization armed)" : " (flat only)"));
             }
         });
     }
@@ -112,6 +138,27 @@ export class RoomIllustrator extends BaseScriptComponent {
         return this.stylePrompt + ". Scene: " + room + ". " + description;
     }
 
+    /** Ensure the module instance Imagen imports actually holds the tokens. */
+    private ensureCredentials(): void {
+        const current = RemoteServiceGatewayCredentials.getApiToken(AvaliableApiTypes.Google) || "";
+        if (current.length > 0 && current.indexOf("[INSERT") === -1) {
+            return; // already populated
+        }
+        if (!this.credentials) {
+            return;
+        }
+        const source = this.credentials as any;
+        const statics = RemoteServiceGatewayCredentials as any;
+        for (const field of ["googleToken", "snapToken", "openAIToken"]) {
+            const token = source[field];
+            if (typeof token === "string" && token.length > 0 && token.indexOf("[INSERT") === -1) {
+                statics[field] = token;
+            }
+        }
+        const after = RemoteServiceGatewayCredentials.getApiToken(AvaliableApiTypes.Google) || "";
+        print("RoomIllustrator: credentials sync (google token " + (after.length > 0 ? "present" : "MISSING") + ")");
+    }
+
     private generate(room: string, key: string): void {
         if (this.authFailed) {
             return; // token missing; stay text-only without spamming the API
@@ -119,6 +166,7 @@ export class RoomIllustrator extends BaseScriptComponent {
         if (this.generating) {
             return; // one generation at a time; latest room wins on next prompt
         }
+        this.ensureCredentials();
         this.generating = true;
         const prompt = this.buildPrompt(room);
         print('RoomIllustrator: generating "' + room + '"');

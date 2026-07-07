@@ -52,16 +52,22 @@ export class VoiceInput extends BaseScriptComponent {
             }
         });
 
-        // Spectacles pinch-to-talk; GestureModule is unavailable in some
-        // Preview configurations, so fall back to the Speak button silently.
-        try {
-            // @ts-ignore
-            const gestureModule: GestureModule = require("LensStudio:GestureModule");
-            gestureModule.getPinchDownEvent(GestureModule.HandType.Right).add(() => this.startListen());
-            gestureModule.getPinchUpEvent(GestureModule.HandType.Right).add(() => this.stopListen());
-            print("VoiceInput: right-hand pinch-to-talk armed");
-        } catch (e) {
-            print("VoiceInput: GestureModule unavailable, use the Speak button (" + e + ")");
+        // Spectacles pinch-to-talk on the LEFT hand (the right hand pinches
+        // to press UI buttons, which must not trigger listening). Skipped in
+        // the editor, where the simulated hand's pinch fires on every click.
+        // @ts-ignore - deviceInfoSystem is a Lens runtime global
+        if (global.deviceInfoSystem.isEditor()) {
+            print("VoiceInput: editor - use the Speak button");
+        } else {
+            try {
+                // @ts-ignore
+                const gestureModule: GestureModule = require("LensStudio:GestureModule");
+                gestureModule.getPinchDownEvent(GestureModule.HandType.Left).add(() => this.startListen());
+                gestureModule.getPinchUpEvent(GestureModule.HandType.Left).add(() => this.stopListen());
+                print("VoiceInput: LEFT-hand pinch-to-talk armed");
+            } catch (e) {
+                print("VoiceInput: GestureModule unavailable, use the Speak button (" + e + ")");
+            }
         }
     }
 

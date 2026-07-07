@@ -18,9 +18,13 @@ export class Narrator extends BaseScriptComponent {
     @input
     autoNarrate: boolean = true;
 
-    /** Longest text (chars) sent to TTS per turn; longer text is truncated. */
+    /**
+     * Longest text (chars) sent to TTS per turn; longer text is truncated at
+     * a sentence boundary. Keep under ~300: the TTS response is capped at
+     * 4MB (gRPC RESOURCE_EXHAUSTED beyond that).
+     */
     @input
-    maxChars: number = 400;
+    maxChars: number = 280;
 
     // @ts-ignore - require is provided by the Lens runtime
     private tts: TextToSpeechModule = require("LensStudio:TextToSpeechModule");

@@ -47,4 +47,4 @@
   InputLines:
     - // @input AssignableType zmHost
     - // @input bool autoNarrate = true
-    - // @input float maxChars = 400
+    - // @input float maxChars = 280

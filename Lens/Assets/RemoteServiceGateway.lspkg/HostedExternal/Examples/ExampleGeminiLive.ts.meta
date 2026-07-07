@@ -46,8 +46,8 @@
     []
   DefaultScriptInputs:
     - websocketRequirementsObj: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      dynamicAudioOutput: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
-      microphoneRecorder: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      dynamicAudioOutput: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      microphoneRecorder: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       textDisplay: !<reference.Text> 00000000-0000-0000-0000-000000000000
       instructions: You are a helpful assistant that knows everything about New York City
       haveVideoInput: false
@@ -64,8 +64,8 @@
     - '// @ui {"widget":"label", "label":"<span style=\"color: #94A3B8; font-size: 11px;\">Configure real-time multimodal AI interaction with audio and video inputs</span>"}'
     - '// @ui {"widget":"group_start", "label":"Setup"}'
     - // @input SceneObject websocketRequirementsObj
-    - // @input AssignableType_1 dynamicAudioOutput
-    - // @input AssignableType_2 microphoneRecorder
+    - // @input AssignableType dynamicAudioOutput
+    - // @input AssignableType_1 microphoneRecorder
     - // @input Component.Text textDisplay
     - '// @ui {"widget":"group_end"}'
     - '// @ui {"widget":"separator"}'

@@ -1156,8 +1156,8 @@
   ScriptInputs:
     "":
       websocketRequirementsObj: !<reference.SceneObject> e31c41bd-e12e-454e-b64d-a54eb9b363c6
-      dynamicAudioOutput: !<MappingBased.AssignableType_1> 47caf807-5ecb-4c47-833b-65f8b9ded883
-      microphoneRecorder: !<MappingBased.AssignableType_2> 56c4409e-482d-43ea-a75d-fa9d54e1d630
+      dynamicAudioOutput: !<MappingBased.AssignableType> 47caf807-5ecb-4c47-833b-65f8b9ded883
+      microphoneRecorder: !<MappingBased.AssignableType_1> 56c4409e-482d-43ea-a75d-fa9d54e1d630
       textDisplay: !<reference.Text> 2454ed3f-36f1-48a1-85ac-d77463d2c576
       instructions: You are a helpful assistant that loves to make puns
       haveVideoInput: false
@@ -1259,8 +1259,8 @@
   ScriptInputs:
     "":
       websocketRequirementsObj: !<reference.SceneObject> e31c41bd-e12e-454e-b64d-a54eb9b363c6
-      dynamicAudioOutput: !<MappingBased.AssignableType_1> 47caf807-5ecb-4c47-833b-65f8b9ded883
-      microphoneRecorder: !<MappingBased.AssignableType_2> 56c4409e-482d-43ea-a75d-fa9d54e1d630
+      dynamicAudioOutput: !<MappingBased.AssignableType> 47caf807-5ecb-4c47-833b-65f8b9ded883
+      microphoneRecorder: !<MappingBased.AssignableType_1> 56c4409e-482d-43ea-a75d-fa9d54e1d630
       textDisplay: !<reference.Text> 4484ca31-9fb8-4a24-affd-60beb0ce36b4
       instructions: You are a helpful assistant that loves to make puns
       audioOutput: false
@@ -1990,7 +1990,7 @@
       seed: !<float> 12345.000000
       sampleCount: !<float> 1.000000
       generateMusicOnTap: false
-      dynamicAudioOutput: !<MappingBased.AssignableType_1> 47caf807-5ecb-4c47-833b-65f8b9ded883
+      dynamicAudioOutput: !<MappingBased.AssignableType> 47caf807-5ecb-4c47-833b-65f8b9ded883
       playAudioOnTap: true
       enableLogging: false
       enableLoggingLifecycle: false

@@ -22,11 +22,16 @@
   VersionMajor: 0
   VersionMinor: 0
   VersionPatch: 0
-  ComponentUid: 00000000-0000-0000-0000-000000000000
+  ComponentUid: 83efcb05-2465-44f6-a622-2781171db555
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
-    {}
+    credentials: false
+    flatImage: false
+    maxDescriptionChars: false
+    spatialFrame: false
+    stylePrompt: false
+    zmHost: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -36,10 +41,19 @@
   Attachments:
     []
   DefaultScriptInputs:
-    -
-      {}
+    - zmHost: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      flatImage: !<reference.Image> 00000000-0000-0000-0000-000000000000
+      spatialFrame: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      credentials: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      stylePrompt: "Painterly storybook illustration for a classic text adventure, atmospheric, muted colors, no text, no letters, no watermark"
+      maxDescriptionChars: !<float> 220.000000
   ScriptTypes:
     -
       {}
   InputLines:
-    []
+    - // @input AssignableType zmHost
+    - // @input Component.Image flatImage
+    - // @input Component.ScriptComponent spatialFrame
+    - // @input Component.ScriptComponent credentials
+    - '// @input string stylePrompt = "Painterly storybook illustration for a classic text adventure, atmospheric, muted colors, no text, no letters, no watermark" {"widget":"text_area"}'
+    - // @input float maxDescriptionChars = 220
