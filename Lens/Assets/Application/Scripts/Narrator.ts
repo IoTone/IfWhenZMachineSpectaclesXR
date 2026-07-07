@@ -26,6 +26,15 @@ export class Narrator extends BaseScriptComponent {
     @input
     maxChars: number = 280;
 
+    /** TTS voice. Lens Studio ships "Sasha" and "Sam" (English). */
+    @input
+    @widget(new ComboBoxWidget([new ComboBoxItem("Sasha", "Sasha"), new ComboBoxItem("Sam", "Sam")]))
+    voiceName: string = "Sasha";
+
+    /** Speaking pace in percent (75 = slower, 125 = faster). */
+    @input
+    voicePace: number = 100;
+
     // @ts-ignore - require is provided by the Lens runtime
     private tts: TextToSpeechModule = require("LensStudio:TextToSpeechModule");
     private audio: AudioComponent;
@@ -65,6 +74,22 @@ export class Narrator extends BaseScriptComponent {
         return text
             .replace(/\[[^\]]*\]/g, " ") // bracketed metadata
             .replace(/[>*_|#]/g, " ") // prompt and markup glyphs
+            // Legal/version boilerplate (game banners): keep the title and the
+            // opening scene, silently drop copyright/trademark/serial lines.
+            .replace(/Copyright\s*(\(c\)|©)?[^.]*\.\s*/gi, " ")
+            .replace(/All rights reserved\.?/gi, " ")
+            .replace(/\b[\w'-]+ is a registered trademark[^.]*\.\s*/gi, " ")
+            .replace(/Interactive fiction[^.]*\.\s*/gi, " ")
+            .replace(/Release\s+\d+\s*\/\s*Serial number\s+\d+/gi, " ")
+            .replace(/Version\s+\d[^ ]*/gi, " ")
+            // Line breaks become sentence pauses: end each line with a period
+            // (unless it already has terminal punctuation) so the TTS voice
+            // breathes naturally between lines.
+            .split(/\n+/)
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .map((line) => (/[.!?:,]$/.test(line) ? line : line + "."))
+            .join(" ")
             .replace(/\s+/g, " ")
             .trim();
     }
@@ -100,6 +125,14 @@ export class Narrator extends BaseScriptComponent {
         try {
             // @ts-ignore - TextToSpeech is a Lens runtime global
             const options = TextToSpeech.Options.create();
+            try {
+                // voicePace is not in the TS type defs but is honored at runtime
+                const opts = options as any;
+                opts.voiceName = this.voiceName;
+                opts.voicePace = this.voicePace;
+            } catch (e) {
+                // older runtime without these options - default voice
+            }
             this.tts.synthesize(
                 text,
                 options,

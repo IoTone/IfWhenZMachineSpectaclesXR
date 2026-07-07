@@ -28,6 +28,8 @@
   ScriptInputsHidden:
     autoNarrate: false
     maxChars: false
+    voiceName: false
+    voicePace: false
     zmHost: false
   ScriptTypesHidden:
     {}
@@ -41,6 +43,8 @@
     - zmHost: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
       autoNarrate: true
       maxChars: !<float> 400.000000
+      voiceName: Sasha
+      voicePace: !<float> 100.000000
   ScriptTypes:
     -
       {}
@@ -48,3 +52,5 @@
     - // @input AssignableType zmHost
     - // @input bool autoNarrate = true
     - // @input float maxChars = 280
+    - '// @input string voiceName = "Sasha" {"widget":"combobox", "values":[{"label":"Sasha", "value":"Sasha"}, {"label":"Sam", "value":"Sam"}]}'
+    - // @input float voicePace = 100

@@ -1890,12 +1890,12 @@ var require_io = __commonJS({
     }
     function h_output_stream(vm, [number, table]) {
       if (vm.trace) {
-        console.log(`@output_stream ${number}${table !== void 0 ? `,${table}` : ""} (no-op)`);
+        console.log(`output_stream ${number}${table !== void 0 ? `,${table}` : ""} (no-op)`);
       }
     }
     function h_input_stream(vm, [number]) {
       if (vm.trace) {
-        console.log(`@input_stream ${number} (no-op)`);
+        console.log(`input_stream ${number} (no-op)`);
       }
     }
     function h_sound_effect(vm, operands) {

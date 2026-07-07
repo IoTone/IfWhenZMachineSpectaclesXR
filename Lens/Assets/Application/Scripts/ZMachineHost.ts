@@ -52,6 +52,11 @@ export class ZMachineHost extends BaseScriptComponent {
     @input
     rigDistance: number = 60;
 
+    /** Played when a command is accepted (assign the alert audio asset). */
+    @input
+    @allowUndefined
+    commandSound: AudioTrackAsset;
+
     private host: any = null;
     private tszm: any = null;
     private lines: string[] = [""];
@@ -61,6 +66,8 @@ export class ZMachineHost extends BaseScriptComponent {
     private narrationListener: ((text: string) => void) | null = null;
     private turnBuffer: string = "";
     private latestTurnText: string = "";
+    private offline: boolean = false;
+    private lastStatusLine: string = "";
     private demoCommands: string[] = [
         "open mailbox",
         "read leaflet",
@@ -79,8 +86,32 @@ export class ZMachineHost extends BaseScriptComponent {
     onAwake() {
         this.createEvent("OnStartEvent").bind(() => {
             this.applyLayout();
+            this.watchConnectivity();
             this.startGame();
         });
+    }
+
+    /** HUD indicator: prefix the status line while the network is down. */
+    private watchConnectivity(): void {
+        try {
+            // @ts-ignore - deviceInfoSystem is a Lens runtime global
+            const dis = global.deviceInfoSystem;
+            this.offline = !dis.isInternetAvailable();
+            dis.onInternetStatusChanged.add((args: any) => {
+                this.offline = !args.isInternetAvailable;
+                print("ZMachineHost: network " + (this.offline ? "OFFLINE" : "online"));
+                this.renderStatus();
+            });
+        } catch (e) {
+            // connectivity API unavailable; assume online
+        }
+        this.renderStatus();
+    }
+
+    private renderStatus(): void {
+        if (this.statusText) {
+            this.statusText.text = (this.offline ? "⚠ NO NETWORK   " : "") + this.lastStatusLine;
+        }
     }
 
     /**
@@ -115,6 +146,26 @@ export class ZMachineHost extends BaseScriptComponent {
     public submitCommand(cmd: string): void {
         if (this.host) {
             this.host.device.pushInput(cmd);
+            this.confirmCommand(cmd);
+        }
+    }
+
+    /**
+     * Command-accepted feedback hook: plays the confirmation sound. Extend
+     * here for richer confirmation UX (flash the preview line, haptics, etc.).
+     */
+    private confirmAudio: AudioComponent | null = null;
+    private confirmCommand(cmd: string): void {
+        if (this.commandSound) {
+            if (!this.confirmAudio) {
+                this.confirmAudio = this.getSceneObject().createComponent("Component.AudioComponent") as AudioComponent;
+                this.confirmAudio.audioTrack = this.commandSound;
+            }
+            try {
+                this.confirmAudio.play(1);
+            } catch (e) {
+                // audio unavailable; feedback is non-critical
+            }
         }
     }
 
@@ -238,9 +289,8 @@ export class ZMachineHost extends BaseScriptComponent {
             },
             onEcho: (cmd: string) => this.appendText("> " + cmd + "\n"),
             onStatus: (s: string) => {
-                if (this.statusText) {
-                    this.statusText.text = s;
-                }
+                this.lastStatusLine = s;
+                this.renderStatus();
             },
             onQuit: () => this.appendText("\n[Game over]\n"),
             onError: (e: any) => {
@@ -258,10 +308,15 @@ export class ZMachineHost extends BaseScriptComponent {
                 // With no narrator registered yet, keep the buffer (capped) so
                 // a late-registering narrator can speak the opening text.
                 if (this.narrationListener) {
-                    const turnText = this.turnBuffer.replace(/\s+/g, " ").trim();
+                    // Collapse spaces but KEEP line breaks — the narrator
+                    // turns them into natural pauses.
+                    const turnText = this.turnBuffer
+                        .replace(/[ \t]+/g, " ")
+                        .replace(/\n{2,}/g, "\n")
+                        .trim();
                     this.turnBuffer = "";
                     if (turnText.length > 0) {
-                        this.latestTurnText = turnText;
+                        this.latestTurnText = turnText.replace(/\s+/g, " ");
                         this.narrationListener(turnText);
                     }
                 } else if (this.turnBuffer.length > 2000) {

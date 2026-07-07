@@ -27,6 +27,7 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     autoDemo: false
+    commandSound: false
     illustration: false
     maxLines: false
     outputText: false
@@ -49,6 +50,7 @@
       autoDemo: false
       illustration: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       rigDistance: !<float> 60.000000
+      commandSound: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
@@ -60,3 +62,4 @@
     - // @input bool autoDemo
     - // @input SceneObject illustration
     - // @input float rigDistance = 60
+    - // @input Asset.AudioTrackAsset commandSound

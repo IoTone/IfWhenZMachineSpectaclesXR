@@ -59,6 +59,7 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
 
     private pendingVerb: string | null = null;
     private lastContext: any = null;
+    private lastSignature: string = "";
 
     private onAwake(): void {
         this.placeMenu();
@@ -115,13 +116,20 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
         for (const d of COMPASS) {
             buttons.push(this.button(d, "verb", d.toLowerCase(), false));
         }
-        buttons.push(this.button("Speak", "meta", "speak"));
         buttons.push(this.button(this.narrator && this.narrator.isOn ? "Narrate: On" : "Narrate: Off", "meta", "narrate"));
-        buttons.push(this.button("Clear", "meta", "clear"));
         buttons.push(this.button("Save", "verb", "save", false));
         buttons.push(this.button("Restore", "verb", "restore", false));
         buttons.push(this.button("New Game", "meta", "newgame"));
 
+        // The scroll kit was designed for one-shot creation; rebuilding every
+        // turn races its delayed scroll-reset and causes visual jitter. Skip
+        // when nothing actually changed.
+        const signature = buttons.map((b) => b.buttonText).join("|");
+        if (signature === this.lastSignature) {
+            this.updatePreview();
+            return;
+        }
+        this.lastSignature = signature;
         this.scrollMenuController.clearButtons();
         this.scrollMenuController.createButtons(buttons);
         this.updatePreview();
@@ -143,12 +151,7 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
                     this.rebuild(); // refresh the On/Off label
                 }
             } else if (data.command === "clear") {
-                // Reset the command builder and drop any queued commands.
-                this.pendingVerb = null;
-                this.updatePreview();
-                if (this.zmHost) {
-                    this.zmHost.clearQueuedInput();
-                }
+                this.clearCommand();
             }
             return;
         }
@@ -172,6 +175,15 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
             this.updatePreview();
         } else {
             this.zmHost.submitCommand("examine " + data.command);
+        }
+    }
+
+    /** Reset the command builder and drop any queued commands (Clear button). */
+    public clearCommand(): void {
+        this.pendingVerb = null;
+        this.updatePreview();
+        if (this.zmHost) {
+            this.zmHost.clearQueuedInput();
         }
     }
 

@@ -21,6 +21,7 @@ Design elements we can add spatially:
 - tszm: nice work making a compact zmachine in TS and making it portable to browser or node.js 
 - zmcdn: TBD need a reference to this concept
 - PoC Research tszm / IF AI : https://browneverettlewis.com/case-studies/tszm-tscdn.pdf
+- ZorkUI: https://github.com/posabsolute/zork-ui/tree/main
 
 ## Requirements
 
@@ -75,3 +76,7 @@ TODO
 
 Submit a PR or contact me to collaborate on this.
 
+## Attributions
+
+- Microphone: https://sketchfab.com/3d-models/microphone-cf9580db045e4bd6818306d50f2fa2ce
+- Audio

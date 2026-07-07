@@ -495,14 +495,17 @@ function h_output_stream(vm, [number, table]) {
     // Select output stream (v3+)
     // Currently no-op
     if (vm.trace) {
-        console.log(`@output_stream ${number}${table !== undefined ? `,${table}` : ""} (no-op)`);
+        // NOTE: "@ output" also trips Lens Studio's JS-asset pragma scanner.
+        console.log(`output_stream ${number}${table !== undefined ? `,${table}` : ""} (no-op)`);
     }
 }
 function h_input_stream(vm, [number]) {
     // Select input stream (v3+)
     // Currently no-op
     if (vm.trace) {
-        console.log(`@input_stream ${number} (no-op)`);
+        // NOTE: must not contain the literal "@ input" sequence — Lens Studio
+        // scans JS assets for @-input pragmas and errors on it.
+        console.log(`input_stream ${number} (no-op)`);
     }
 }
 function h_sound_effect(vm, operands) {

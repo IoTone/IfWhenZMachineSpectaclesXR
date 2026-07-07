@@ -50,6 +50,16 @@ export class RoomIllustrator extends BaseScriptComponent {
     @allowUndefined
     credentials: ScriptComponent;
 
+    /** Spatial portal size/depth (see Spatial Image setMaterialProperties). */
+    @input
+    spatialHeight: number = 14;
+
+    @input
+    spatialOffset: number = 0;
+
+    @input
+    spatialDepth: number = 15;
+
     @input
     @widget(new TextAreaWidget())
     stylePrompt: string =
@@ -64,6 +74,8 @@ export class RoomIllustrator extends BaseScriptComponent {
     private generating: boolean = false;
     private authFailed: boolean = false;
     private store: GeneralDataStore | null = null;
+    /** Room that changed while a generation was in flight; served next. */
+    private pendingRoom: string | null = null;
 
     onAwake() {
         // @ts-ignore - Lens runtime global
@@ -80,6 +92,30 @@ export class RoomIllustrator extends BaseScriptComponent {
                     .getSceneObject()
                     .getTransform()
                     .setLocalPosition(new vec3(-6, 19, 0));
+                // Size the portal to the illustration slot; component defaults
+                // (frameHeight 60, frameOffset -100) render a room-sized
+                // backdrop a meter behind the rig.
+                try {
+                    (this.spatialFrame as any).setMaterialProperties(
+                        this.spatialHeight,
+                        this.spatialOffset,
+                        this.spatialDepth
+                    );
+                } catch (e) {
+                    print("RoomIllustrator: could not size spatial frame (" + e + ")");
+                }
+                // Progressive display: the flat plane stays visible until the
+                // spatialized mesh has actually loaded.
+                try {
+                    (this.spatialFrame as any).onLoaded.add(() => {
+                        print("RoomIllustrator: spatialized mesh ready");
+                        if (this.flatImage) {
+                            this.flatImage.getSceneObject().enabled = false;
+                        }
+                    });
+                } catch (e) {
+                    print("RoomIllustrator: no onLoaded event (" + e + ")");
+                }
             }
             if (this.zmHost) {
                 this.zmHost.addSceneContextListener((ctx: any) => this.onContext(ctx));
@@ -89,11 +125,17 @@ export class RoomIllustrator extends BaseScriptComponent {
     }
 
     private onContext(ctx: any): void {
-        if (!ctx || !ctx.room || ctx.room === this.lastRoom) {
+        if (!ctx || !ctx.room) {
             return;
         }
+        const changed = ctx.room !== this.lastRoom;
         this.lastRoom = ctx.room;
-        this.illustrate(ctx.room);
+        // Illustrate on room change — and also retry each turn if the current
+        // room still has no image (earlier attempt failed or was skipped).
+        const uncached = !this.memCache[this.cacheKey(ctx.room)];
+        if (changed || (uncached && !this.generating && !this.authFailed)) {
+            this.illustrate(ctx.room);
+        }
     }
 
     private cacheKey(room: string): string {
@@ -164,7 +206,8 @@ export class RoomIllustrator extends BaseScriptComponent {
             return; // token missing; stay text-only without spamming the API
         }
         if (this.generating) {
-            return; // one generation at a time; latest room wins on next prompt
+            this.pendingRoom = room; // served as soon as the current one finishes
+            return;
         }
         this.ensureCredentials();
         this.generating = true;
@@ -187,6 +230,7 @@ export class RoomIllustrator extends BaseScriptComponent {
         Imagen.generateImage(request)
             .then((response) => {
                 this.generating = false;
+                this.drainPending();
                 const prediction = response.predictions && response.predictions[0];
                 if (!prediction || !prediction.bytesBase64Encoded) {
                     print("RoomIllustrator: empty Imagen response for " + room);
@@ -207,6 +251,7 @@ export class RoomIllustrator extends BaseScriptComponent {
             })
             .catch((error) => {
                 this.generating = false;
+                this.drainPending();
                 const message = String(error);
                 if (message.indexOf("token not configured") !== -1 || message.indexOf("unauthorized") !== -1) {
                     this.authFailed = true;
@@ -215,6 +260,15 @@ export class RoomIllustrator extends BaseScriptComponent {
                     print("RoomIllustrator: generation failed for " + room + ": " + message);
                 }
             });
+    }
+
+    /** If the player moved on during a generation, illustrate where they are now. */
+    private drainPending(): void {
+        const next = this.pendingRoom;
+        this.pendingRoom = null;
+        if (next && next === this.lastRoom && !this.memCache[this.cacheKey(next)]) {
+            this.illustrate(next);
+        }
     }
 
     private persist(key: string, b64: string): void {
@@ -230,6 +284,9 @@ export class RoomIllustrator extends BaseScriptComponent {
 
     private display(texture: Texture, room: string, source: string): void {
         print("RoomIllustrator: showing " + room + " (" + source + ")");
+        // Flat image first — always visible immediately, never blocked on the
+        // spatialization service. The spatial frame's onLoaded handler hides
+        // it once the depth mesh is really there.
         if (this.flatImage) {
             const material = this.flatImage.mainMaterial.clone();
             this.flatImage.mainMaterial = material;

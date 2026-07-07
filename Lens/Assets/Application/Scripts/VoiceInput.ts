@@ -72,6 +72,21 @@ export class VoiceInput extends BaseScriptComponent {
     }
 
     /** UI entry point: toggle listening on/off (e.g. from the Speak button). */
+    /** True while actively listening for speech. */
+    public get isListening(): boolean {
+        return this.listening;
+    }
+
+    /** Hold-to-talk: press. */
+    public holdStart(): void {
+        this.startListen();
+    }
+
+    /** Hold-to-talk: release (final transcription arrives after stop). */
+    public holdEnd(): void {
+        this.stopListen();
+    }
+
     public toggleListen(): void {
         if (this.listening) {
             this.stopListen();
