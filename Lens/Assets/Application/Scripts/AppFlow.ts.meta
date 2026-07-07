@@ -1,0 +1,54 @@
+- !<AssetImportMetadata/6409c821-e45b-466a-bab4-a47425d89aac>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> e53671d0-6592-4d2a-a228-d88dfd2f4dd3
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> e53671d0-6592-4d2a-a228-d88dfd2f4dd3
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 67cbc251-2a4b-4ba5-beca-4e51aa9192a1
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/67cbc251-2a4b-4ba5-beca-4e51aa9192a1>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 1741834c-f46d-4d77-a3cb-aeea736e38a5
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    gameRigs: false
+    minSplashSeconds: false
+    splash: false
+    zmHost: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - zmHost: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      splash: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      minSplashSeconds: !<float> 3.000000
+      gameRigs: !<reference.SceneObject[]>
+        []
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType zmHost
+    - // @input AssignableType_1 splash
+    - // @input float minSplashSeconds = 3
+    - "// @input SceneObject[] gameRigs"

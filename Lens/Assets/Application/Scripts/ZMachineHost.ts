@@ -60,6 +60,10 @@ export class ZMachineHost extends BaseScriptComponent {
     @input
     startGameId: string = "minizork";
 
+    /** Boot the engine at OnStart. Turn OFF when AppFlow drives the splash. */
+    @input
+    autoStart: boolean = true;
+
     private host: any = null;
     private tszm: any = null;
     private lines: string[] = [""];
@@ -90,7 +94,9 @@ export class ZMachineHost extends BaseScriptComponent {
         this.createEvent("OnStartEvent").bind(() => {
             this.applyLayout();
             this.watchConnectivity();
-            this.startGame();
+            if (this.autoStart) {
+                this.beginSession();
+            }
         });
     }
 
@@ -281,6 +287,14 @@ export class ZMachineHost extends BaseScriptComponent {
         if (this.outputText) {
             this.outputText.text = "";
         }
+    }
+
+    /** Boot the engine + first game. Idempotent (AppFlow or autoStart calls it). */
+    public beginSession(): void {
+        if (this.host) {
+            return;
+        }
+        this.startGame();
     }
 
     private startGame(): void {
