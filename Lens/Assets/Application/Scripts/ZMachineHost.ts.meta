@@ -32,6 +32,7 @@
     maxLines: false
     outputText: false
     rigDistance: false
+    startGameId: false
     statusText: false
     wrapColumn: false
   ScriptTypesHidden:
@@ -51,6 +52,7 @@
       illustration: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       rigDistance: !<float> 60.000000
       commandSound: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
+      startGameId: minizork
   ScriptTypes:
     -
       {}
@@ -63,3 +65,4 @@
     - // @input SceneObject illustration
     - // @input float rigDistance = 60
     - // @input Asset.AudioTrackAsset commandSound
+    - '// @input string startGameId = "minizork"'

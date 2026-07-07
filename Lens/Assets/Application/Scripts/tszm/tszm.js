@@ -1383,7 +1383,7 @@ var require_memory = __commonJS({
         return;
       }
       const signedIndex = toSigned16(wordIndex);
-      const addr = arrayAddr + 2 * signedIndex;
+      const addr = arrayAddr + 2 * signedIndex & 65535;
       if (addr < 0 || addr >= vm.memory.length - 1) {
         console.error(`LOADW: Invalid memory address 0x${addr.toString(16)} (array=0x${arrayAddr.toString(16)}, index=${signedIndex}). Memory size: 0x${vm.memory.length.toString(16)}`);
         return;
@@ -1397,7 +1397,7 @@ var require_memory = __commonJS({
         return;
       }
       const signedIndex = toSigned16(byteIndex);
-      const addr = arrayAddr + signedIndex;
+      const addr = arrayAddr + signedIndex & 65535;
       if (addr < 0 || addr >= vm.memory.length) {
         console.error(`LOADB: Invalid memory address 0x${addr.toString(16)} (array=0x${arrayAddr.toString(16)}, index=${signedIndex}). Memory size: 0x${vm.memory.length.toString(16)}`);
         return;
@@ -1411,7 +1411,7 @@ var require_memory = __commonJS({
         return;
       }
       const signedIndex = toSigned16(wordIndex);
-      const addr = arrayAddr + 2 * signedIndex;
+      const addr = arrayAddr + 2 * signedIndex & 65535;
       if (addr < 0 || addr >= vm.memory.length - 1) {
         console.error(`STOREW: Invalid memory address 0x${addr.toString(16)} (array=0x${arrayAddr.toString(16)}, index=${signedIndex}). Memory size: 0x${vm.memory.length.toString(16)}`);
         return;
@@ -1424,7 +1424,7 @@ var require_memory = __commonJS({
         return;
       }
       const signedIndex = toSigned16(byteIndex);
-      const addr = arrayAddr + signedIndex;
+      const addr = arrayAddr + signedIndex & 65535;
       if (addr < 0 || addr >= vm.memory.length) {
         console.error(`STOREB: Invalid memory address 0x${addr.toString(16)} (array=0x${arrayAddr.toString(16)}, index=${signedIndex}). Memory size: 0x${vm.memory.length.toString(16)}`);
         return;
@@ -3533,6 +3533,14 @@ Total callStackEntries: ${callStackEntries.length}
             } };
             h_call(this, [packedAddress], ctx);
           }
+        } else if (version >= 8) {
+          this.pc = 0;
+          const byteAddress = this.header?.initialProgramCounter || 0;
+          const packedAddress = Math.floor(byteAddress / 8);
+          const { h_call } = require_call();
+          const ctx = { store: () => {
+          } };
+          h_call(this, [packedAddress], ctx);
         } else {
           this.pc = 0;
           const packedAddress = this.header?.initialProgramCounter || 0;

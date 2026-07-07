@@ -19,8 +19,7 @@
 // "Cannot find module" at runtime even when the asset exists.
 // @ts-ignore - require is provided by the Lens runtime
 const tszmModule = require("./tszm/tszm.js");
-// @ts-ignore
-const miniZorkModule = require("./games/MiniZork.js");
+import { GAMES, GameEntry, getGame } from "./games/registry";
 
 @component
 export class ZMachineHost extends BaseScriptComponent {
@@ -56,6 +55,10 @@ export class ZMachineHost extends BaseScriptComponent {
     @input
     @allowUndefined
     commandSound: AudioTrackAsset;
+
+    /** Game to boot at start (id from games/registry: lostpig, adventure, minizork). */
+    @input
+    startGameId: string = "minizork";
 
     private host: any = null;
     private tszm: any = null;
@@ -233,17 +236,51 @@ export class ZMachineHost extends BaseScriptComponent {
 
     /** Public API: stop the current session and boot the game fresh. */
     public restartGame(): void {
+        this.resetSession();
+        this.launchGame();
+        print("ZMachineHost: game restarted");
+    }
+
+    /** Public API: switch to another library game (id from games/registry). */
+    public launchGameById(id: string): boolean {
+        const entry = getGame(id);
+        if (!entry) {
+            print("ZMachineHost: unknown game id '" + id + "'");
+            return false;
+        }
+        this.currentGame = entry;
+        this.resetSession();
+        this.launchGame();
+        return true;
+    }
+
+    /** The library catalog, for menu UIs. */
+    public get library(): GameEntry[] {
+        return GAMES;
+    }
+
+    /** The registry entry currently loaded. */
+    public get currentGameEntry(): GameEntry | null {
+        return this.currentGame;
+    }
+
+    private resetSession(): void {
         if (this.host) {
             this.host.stop();
             this.host = null;
         }
         this.lines = [""];
         this.loggedFirstText = false;
+        this.turnBuffer = "";
+        this.latestTurnText = "";
+        this.lastContext = null;
+        this.lastStatusLine = "";
         if (this.statusText) {
             this.statusText.text = "";
         }
-        this.launchGame();
-        print("ZMachineHost: game restarted");
+        if (this.outputText) {
+            this.outputText.text = "";
+        }
     }
 
     private startGame(): void {
@@ -279,8 +316,14 @@ export class ZMachineHost extends BaseScriptComponent {
         }
     }
 
+    // Resolved lazily: @input values are injected after field initializers run.
+    private currentGame: GameEntry | null = null;
+
     private launchGame(): void {
-        const game = miniZorkModule;
+        if (!this.currentGame) {
+            this.currentGame = getGame(this.startGameId) || GAMES[0];
+        }
+        const game = this.currentGame.module;
         this.host = this.tszm.createZHost({
             gameBytes: game.getBytes(),
             onText: (t: string) => {

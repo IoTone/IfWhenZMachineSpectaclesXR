@@ -14,7 +14,9 @@ function h_loadw(vm, [arrayAddr, wordIndex], ctx) {
         return;
     }
     const signedIndex = toSigned16(wordIndex);
-    const addr = arrayAddr + 2 * signedIndex;
+    // Sum wraps modulo 0x10000 (spec: arrays live below 64K; Frotz
+    // computes the address in an unsigned 16-bit word, and games rely on it).
+    const addr = (arrayAddr + 2 * signedIndex) & 0xffff;
     if (addr < 0 || addr >= vm.memory.length - 1) {
         console.error(`LOADW: Invalid memory address 0x${addr.toString(16)} ` +
             `(array=0x${arrayAddr.toString(16)}, index=${signedIndex}). ` +
@@ -30,7 +32,7 @@ function h_loadb(vm, [arrayAddr, byteIndex], ctx) {
         return;
     }
     const signedIndex = toSigned16(byteIndex);
-    const addr = arrayAddr + signedIndex;
+    const addr = (arrayAddr + signedIndex) & 0xffff;
     if (addr < 0 || addr >= vm.memory.length) {
         console.error(`LOADB: Invalid memory address 0x${addr.toString(16)} ` +
             `(array=0x${arrayAddr.toString(16)}, index=${signedIndex}). ` +
@@ -46,7 +48,9 @@ function h_storew(vm, [arrayAddr, wordIndex, value]) {
         return;
     }
     const signedIndex = toSigned16(wordIndex);
-    const addr = arrayAddr + 2 * signedIndex;
+    // Sum wraps modulo 0x10000 (spec: arrays live below 64K; Frotz
+    // computes the address in an unsigned 16-bit word, and games rely on it).
+    const addr = (arrayAddr + 2 * signedIndex) & 0xffff;
     if (addr < 0 || addr >= vm.memory.length - 1) {
         console.error(`STOREW: Invalid memory address 0x${addr.toString(16)} ` +
             `(array=0x${arrayAddr.toString(16)}, index=${signedIndex}). ` +
@@ -61,7 +65,7 @@ function h_storeb(vm, [arrayAddr, byteIndex, value]) {
         return;
     }
     const signedIndex = toSigned16(byteIndex);
-    const addr = arrayAddr + signedIndex;
+    const addr = (arrayAddr + signedIndex) & 0xffff;
     if (addr < 0 || addr >= vm.memory.length) {
         console.error(`STOREB: Invalid memory address 0x${addr.toString(16)} ` +
             `(array=0x${arrayAddr.toString(16)}, index=${signedIndex}). ` +

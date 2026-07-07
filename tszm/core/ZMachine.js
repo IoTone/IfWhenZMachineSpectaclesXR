@@ -682,8 +682,21 @@ class ZMachine {
                 h_call(this, [packedAddress], ctx);
             }
         }
+        else if (version >= 8) {
+            // V8: like V1-5 the header holds a BYTE address of the first
+            // instruction (only V6/V7 use a packed main-routine address).
+            // Same trick as V4-5: Inform points it at routine header + 1 and
+            // routines are 8-aligned, so dividing recovers the routine for
+            // h_call to set up locals; h_call multiplies by 8 back.
+            this.pc = 0;
+            const byteAddress = this.header?.initialProgramCounter || 0;
+            const packedAddress = Math.floor(byteAddress / 8);
+            const { h_call } = require("./opcodes/handlers/call");
+            const ctx = { store: () => { } };
+            h_call(this, [packedAddress], ctx);
+        }
         else {
-            // V6+: Header contains a packed routine address
+            // V6-7: Header contains a packed routine address
             this.pc = 0;
             const packedAddress = this.header?.initialProgramCounter || 0;
             const { h_call } = require("./opcodes/handlers/call");
