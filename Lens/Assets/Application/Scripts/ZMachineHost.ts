@@ -57,9 +57,10 @@ export class ZMachineHost extends BaseScriptComponent {
     private lines: string[] = [""];
     private loggedFirstText: boolean = false;
     private lastContext: any = null;
-    private sceneContextListener: ((ctx: any) => void) | null = null;
+    private sceneContextListeners: ((ctx: any) => void)[] = [];
     private narrationListener: ((text: string) => void) | null = null;
     private turnBuffer: string = "";
+    private latestTurnText: string = "";
     private demoCommands: string[] = [
         "open mailbox",
         "read leaflet",
@@ -122,6 +123,21 @@ export class ZMachineHost extends BaseScriptComponent {
         return this.host ? this.host.device.awaitingInput : false;
     }
 
+    /** Stable per-game identifier (release.serial) for cache keys. */
+    public get gameKey(): string {
+        try {
+            const header = this.host ? this.host.zm.getHeader() : null;
+            return header ? header.release + "." + header.serial : "unknown";
+        } catch (e) {
+            return "unknown";
+        }
+    }
+
+    /** The most recent completed turn's text (room descriptions etc.). */
+    public get lastTurnText(): string {
+        return this.latestTurnText;
+    }
+
     /** Drop any commands queued while the game was busy (UI "clear"). */
     public clearQueuedInput(): void {
         if (this.host && this.host.device.clearQueue) {
@@ -138,7 +154,12 @@ export class ZMachineHost extends BaseScriptComponent {
      * immediately with the latest context if one exists.
      */
     public setSceneContextListener(fn: (ctx: any) => void): void {
-        this.sceneContextListener = fn;
+        this.addSceneContextListener(fn);
+    }
+
+    /** Multiple systems (menu, illustrator) can subscribe to context updates. */
+    public addSceneContextListener(fn: (ctx: any) => void): void {
+        this.sceneContextListeners.push(fn);
         if (this.lastContext) {
             fn(this.lastContext);
         }
@@ -229,8 +250,8 @@ export class ZMachineHost extends BaseScriptComponent {
             onPrompt: (ctx: any) => {
                 if (ctx) {
                     this.lastContext = ctx;
-                    if (this.sceneContextListener) {
-                        this.sceneContextListener(ctx);
+                    for (const listener of this.sceneContextListeners) {
+                        listener(ctx);
                     }
                 }
                 // Turn is complete: hand the accumulated text to the narrator.
@@ -240,6 +261,7 @@ export class ZMachineHost extends BaseScriptComponent {
                     const turnText = this.turnBuffer.replace(/\s+/g, " ").trim();
                     this.turnBuffer = "";
                     if (turnText.length > 0) {
+                        this.latestTurnText = turnText;
                         this.narrationListener(turnText);
                     }
                 } else if (this.turnBuffer.length > 2000) {

@@ -52,11 +52,24 @@ export class Narrator extends BaseScriptComponent {
         return this.narrating;
     }
 
+    /**
+     * Remove terminal/meta characters that should never be spoken: the input
+     * prompt (">"), bracketed annotations ("[Game over]", "[Interpreter
+     * error...]"), and stray list/emphasis glyphs.
+     */
+    private cleanForSpeech(text: string): string {
+        return text
+            .replace(/\[[^\]]*\]/g, " ") // bracketed metadata
+            .replace(/[>*_|#]/g, " ") // prompt and markup glyphs
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
     private onTurnText(text: string): void {
         if (!this.narrating) {
             return;
         }
-        let clean = text.trim();
+        let clean = this.cleanForSpeech(text);
         if (clean.length === 0) {
             return;
         }
