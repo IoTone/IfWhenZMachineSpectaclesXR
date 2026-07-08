@@ -27,7 +27,7 @@ export class AppFlow extends BaseScriptComponent {
 
     /** Minimum time the splash stays up (seconds). */
     @input
-    minSplashSeconds: number = 3.0;
+    minSplashSeconds: number = 10.0;
 
     /**
      * Names of game-UI scene objects hidden while the splash/menu is up

@@ -29,6 +29,7 @@
     buttonPrefab: false
     detailText: false
     distance: false
+    scrollMenu: false
     titleText: false
     wrapColumn: false
     zmHost: false
@@ -43,6 +44,7 @@
   DefaultScriptInputs:
     - zmHost: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
       buttonPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      scrollMenu: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       titleText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       detailText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       distance: !<float> 55.000000
@@ -53,6 +55,7 @@
   InputLines:
     - // @input AssignableType zmHost
     - // @input Asset.ObjectPrefab buttonPrefab
+    - // @input AssignableType_1 scrollMenu
     - // @input Component.Text titleText
     - // @input Component.Text detailText
     - // @input float distance = 55

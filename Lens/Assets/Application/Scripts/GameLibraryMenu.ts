@@ -1,8 +1,13 @@
 import { BaseScrollButtonData } from "LocalJoost/Ui/ScrollWindow/Scripts/BaseScrollButtonData";
 import { BaseUIKitScrollButtonController } from "LocalJoost/Ui/ScrollWindow/Scripts/BaseUIKitScrollButtonController";
+import { UIKitScrollMenuController } from "LocalJoost/Ui/ScrollWindow/Scripts/UIKitScrollMenuController";
 import { getComponent } from "LocalJoost/Utilities/SceneUtils";
-import { GAMES, GameEntry } from "./games/registry";
+import { GAMES, GameEntry, getGame } from "./games/registry";
 import { ZMachineHost } from "./ZMachineHost";
+
+interface LibraryButtonData extends BaseScrollButtonData {
+    gameId: string;
+}
 
 /**
  * The game library: one button per registry title on the left, a detail card
@@ -19,6 +24,11 @@ export class GameLibraryMenu extends BaseScriptComponent {
 
     @input
     buttonPrefab: ObjectPrefab;
+
+    /** Scrollable story list (a dedicated LocalJoost scroll menu instance). */
+    @input
+    @allowUndefined
+    scrollMenu: UIKitScrollMenuController;
 
     @input
     @allowUndefined
@@ -60,16 +70,42 @@ export class GameLibraryMenu extends BaseScriptComponent {
         }
         if (this.detailText) {
             // The detail block centers vertically on its anchor; park it low
-            // enough that an 8-10 line card stays clear of the title.
-            this.detailText.getSceneObject().getTransform().setLocalPosition(new vec3(4, 2, 0));
+            // enough that an 8-10 line card stays clear of the title, and far
+            // enough right that the story list frame never covers it.
+            this.detailText.getSceneObject().getTransform().setLocalPosition(new vec3(9, 2, 0));
         }
-        let y = 8;
-        for (const g of GAMES) {
-            const entry = g; // capture per-iteration
-            this.spawn(g.title, new vec3(-13, y, 0), () => this.select(entry));
-            y -= 5;
+        let playPos = new vec3(13, -8, 0);
+        if (this.scrollMenu) {
+            // Scrollable story list on the left, clear of the detail card.
+            const menuTransform = this.scrollMenu.getSceneObject().getTransform();
+            menuTransform.setLocalPosition(new vec3(-17, -3, 0));
+            menuTransform.setLocalRotation(quat.quatIdentity());
+            const buttons: LibraryButtonData[] = [];
+            for (const g of GAMES) {
+                const data = new BaseScrollButtonData() as LibraryButtonData;
+                data.buttonText = g.title;
+                data.gameId = g.id;
+                buttons.push(data);
+            }
+            this.scrollMenu.onButtonPressed.add((data) => {
+                const g = getGame((data as LibraryButtonData).gameId);
+                if (g) {
+                    this.select(g);
+                }
+            });
+            this.scrollMenu.clearButtons();
+            this.scrollMenu.createButtons(buttons);
+        } else {
+            // Fallback: static column (small catalogs only).
+            let y = 8;
+            for (const g of GAMES) {
+                const entry = g; // capture per-iteration
+                this.spawn(g.title, new vec3(-13, y, 0), () => this.select(entry));
+                y -= 5;
+            }
+            playPos = new vec3(-13, y - 1.5, 0);
         }
-        const play = this.spawn("Play", new vec3(-13, y - 1.5, 0), () => {
+        const play = this.spawn("Play", playPos, () => {
             print("GameLibraryMenu: play " + this.selected.id);
             if (this.onPlay) {
                 this.onPlay(this.selected.id);
