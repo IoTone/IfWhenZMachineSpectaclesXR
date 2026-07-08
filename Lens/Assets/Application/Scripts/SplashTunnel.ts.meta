@@ -22,11 +22,17 @@
   VersionMajor: 0
   VersionMinor: 0
   VersionPatch: 0
-  ComponentUid: 00000000-0000-0000-0000-000000000000
+  ComponentUid: 39028efb-afa5-4a50-bb93-c11ab22be982
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
-    {}
+    cols: false
+    distance: false
+    fps: false
+    rows: false
+    taglineText: false
+    titleText: false
+    tunnelText: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -36,10 +42,21 @@
   Attachments:
     []
   DefaultScriptInputs:
-    -
-      {}
+    - tunnelText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      titleText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      taglineText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      cols: !<float> 38.000000
+      rows: !<float> 19.000000
+      fps: !<float> 12.000000
+      distance: !<float> 50.000000
   ScriptTypes:
     -
       {}
   InputLines:
-    []
+    - // @input Component.Text tunnelText
+    - // @input Component.Text titleText
+    - // @input Component.Text taglineText
+    - // @input float cols = 38
+    - // @input float rows = 19
+    - // @input float fps = 12
+    - // @input float distance = 50

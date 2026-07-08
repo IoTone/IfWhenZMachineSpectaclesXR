@@ -1,0 +1,59 @@
+- !<AssetImportMetadata/2c3ca719-4533-4579-8cdd-4b8ad8253983>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 8a4b4169-c963-436b-b154-b0580a6a01bc
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 8a4b4169-c963-436b-b154-b0580a6a01bc
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> f017d11d-3a12-40e0-b7f1-a5e549041e87
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/f017d11d-3a12-40e0-b7f1-a5e549041e87>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 365189c2-ee80-4360-9b44-c05c86bae40e
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    buttonPrefab: false
+    detailText: false
+    distance: false
+    titleText: false
+    wrapColumn: false
+    zmHost: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - zmHost: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      buttonPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      titleText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      detailText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      distance: !<float> 55.000000
+      wrapColumn: !<float> 38.000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType zmHost
+    - // @input Asset.ObjectPrefab buttonPrefab
+    - // @input Component.Text titleText
+    - // @input Component.Text detailText
+    - // @input float distance = 55
+    - // @input float wrapColumn = 38

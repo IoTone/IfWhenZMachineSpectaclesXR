@@ -27,6 +27,7 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     autoDemo: false
+    autoStart: false
     commandSound: false
     illustration: false
     maxLines: false
@@ -53,6 +54,7 @@
       rigDistance: !<float> 60.000000
       commandSound: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
       startGameId: minizork
+      autoStart: true
   ScriptTypes:
     -
       {}
@@ -66,3 +68,4 @@
     - // @input float rigDistance = 60
     - // @input Asset.AudioTrackAsset commandSound
     - '// @input string startGameId = "minizork"'
+    - // @input bool autoStart = true

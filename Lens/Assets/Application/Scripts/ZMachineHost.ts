@@ -254,6 +254,7 @@ export class ZMachineHost extends BaseScriptComponent {
             print("ZMachineHost: unknown game id '" + id + "'");
             return false;
         }
+        this.ensureEngine();
         this.currentGame = entry;
         this.resetSession();
         this.launchGame();
@@ -298,6 +299,18 @@ export class ZMachineHost extends BaseScriptComponent {
     }
 
     private startGame(): void {
+        this.ensureEngine();
+        this.launchGame();
+        if (this.autoDemo) {
+            this.runDemo();
+        }
+    }
+
+    /** One-time engine setup: interpreter module + save storage binding. */
+    private ensureEngine(): void {
+        if (this.tszm) {
+            return;
+        }
         this.tszm = tszmModule;
 
         // Persist saves via Lens persistent storage.
@@ -322,11 +335,6 @@ export class ZMachineHost extends BaseScriptComponent {
                     mem[k] = v;
                 },
             });
-        }
-
-        this.launchGame();
-        if (this.autoDemo) {
-            this.runDemo();
         }
     }
 

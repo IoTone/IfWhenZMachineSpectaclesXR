@@ -88,6 +88,18 @@ export class SplashTunnel extends BaseScriptComponent {
             this.accum = 0;
             this.renderFrame();
         }
+        // Byline color cycles smoothly between blue and orange.
+        if (this.taglineText && this.titleShown) {
+            const t = 0.5 + 0.5 * Math.sin(this.elapsed * 1.6);
+            const blue = { r: 0.3, g: 0.55, b: 1.0 };
+            const orange = { r: 1.0, g: 0.6, b: 0.15 };
+            this.taglineText.textFill.color = new vec4(
+                blue.r + (orange.r - blue.r) * t,
+                blue.g + (orange.g - blue.g) * t,
+                blue.b + (orange.b - blue.b) * t,
+                1.0
+            );
+        }
     }
 
     /** Speed the tunnel up 4x for a moment, then hide the splash. */

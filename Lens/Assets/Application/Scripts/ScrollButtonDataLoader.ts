@@ -3,6 +3,7 @@ import { UIKitScrollMenuController } from "LocalJoost/Ui/ScrollWindow/Scripts/UI
 import { ZMachineHost } from "./ZMachineHost";
 import { VoiceInput } from "./VoiceInput";
 import { Narrator } from "./Narrator";
+import { AppFlow } from "./AppFlow";
 
 /**
  * Drives the scroll menu as a grammar-guided Z-Machine command builder.
@@ -51,6 +52,10 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
     @input
     @allowUndefined
     narrator: Narrator;
+
+    @input
+    @allowUndefined
+    appFlow: AppFlow;
 
     /** Menu header used as the command preview ("take ___"). */
     @input
@@ -120,6 +125,9 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
         buttons.push(this.button("Save", "verb", "save", false));
         buttons.push(this.button("Restore", "verb", "restore", false));
         buttons.push(this.button("New Game", "meta", "newgame"));
+        if (this.appFlow) {
+            buttons.push(this.button("Game Library", "meta", "library"));
+        }
 
         // The scroll kit was designed for one-shot creation; rebuilding every
         // turn races its delayed scroll-reset and causes visual jitter. Skip
@@ -152,6 +160,10 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
                 }
             } else if (data.command === "clear") {
                 this.clearCommand();
+            } else if (data.command === "library") {
+                if (this.appFlow) {
+                    this.appFlow.showLibrary();
+                }
             }
             return;
         }

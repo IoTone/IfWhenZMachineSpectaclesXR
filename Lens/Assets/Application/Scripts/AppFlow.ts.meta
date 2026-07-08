@@ -26,7 +26,7 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
-    gameRigs: false
+    gameRigNames: false
     minSplashSeconds: false
     splash: false
     zmHost: false
@@ -42,8 +42,7 @@
     - zmHost: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
       splash: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       minSplashSeconds: !<float> 3.000000
-      gameRigs: !<reference.SceneObject[]>
-        []
+      gameRigNames: "ScrollMenu,MicProp,Output,Status,SceneIllustration,SpatialFrame"
   ScriptTypes:
     -
       {}
@@ -51,4 +50,4 @@
     - // @input AssignableType zmHost
     - // @input AssignableType_1 splash
     - // @input float minSplashSeconds = 3
-    - "// @input SceneObject[] gameRigs"
+    - '// @input string gameRigNames = "ScrollMenu,MicProp,Output,Status,SceneIllustration,SpatialFrame,RoomIllustrator"'

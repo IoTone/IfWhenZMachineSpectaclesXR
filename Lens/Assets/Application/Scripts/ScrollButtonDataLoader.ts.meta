@@ -26,6 +26,7 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    appFlow: false
     narrator: false
     previewText: false
     scrollMenuController: false
@@ -44,6 +45,7 @@
       zmHost: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       voiceInput: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
       narrator: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      appFlow: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
       previewText: !<reference.Text3D> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
@@ -53,4 +55,5 @@
     - // @input AssignableType_1 zmHost
     - // @input AssignableType_2 voiceInput
     - // @input AssignableType_3 narrator
+    - // @input AssignableType_4 appFlow
     - // @input Component.Text3D previewText
