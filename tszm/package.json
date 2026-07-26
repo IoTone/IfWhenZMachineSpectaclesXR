@@ -15,6 +15,6 @@
     "embed:minizork": "node tools/embed-game.js test/games/minizork.z3 '../Lens/Assets/Application/Scripts/games/MiniZork.js' 'Mini-Zork I'"
   },
   "devDependencies": {
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.28.1"
   }
 }
