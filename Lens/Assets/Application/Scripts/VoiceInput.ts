@@ -1,144 +1,221 @@
 import { ZMachineHost } from "./ZMachineHost";
 
 /**
- * Voice input for the Z-Machine: speech-to-text via VoiceML.
+ * Voice input for the Z-Machine via the ASR Module (automatic speech
+ * recognition). VoiceML is sunset; ASR is the supported API.
  *
- * Two triggers:
- *  - Pinch-to-talk (Spectacles): hold right-hand pinch to listen, release to
- *    stop. Armed via GestureModule when available.
- *  - toggleListen(): call from any UI (e.g. the "Speak" menu button) to
- *    start/stop listening — works in Preview with the microphone enabled.
+ *   docs: developers.snap.com/spectacles/about-spectacles-features/apis/asr-module
  *
- * Final transcriptions are normalized (lowercase, punctuation stripped) and
- * submitted to the interpreter as player commands.
+ * IMPORTANT: the ASR Module is @wearableOnly — it transcribes on Spectacles
+ * hardware, NOT in Lens Studio editor Preview. In the editor startTranscribing
+ * is a no-op/throws, so this class reports "voice needs Spectacles" and the
+ * hold cycle still animates (proving the trigger path) but yields no text.
+ *
+ * Model:
+ *   - One AsrTranscriptionOptions is created once; its update/error callbacks
+ *     are registered once.
+ *   - Hold-to-talk drives sessions: holdStart -> startTranscribing(options),
+ *     holdEnd -> a short grace window to catch the final transcription, then
+ *     stopTranscribing() and submit the recognized command.
+ *
+ * Feedback lifecycle (via statusLine, rendered by the mic indicator):
+ *   idle -> LISTENING (interim words live) -> PROCESSING -> RESULT (~2.5s).
  */
 @component
 export class VoiceInput extends BaseScriptComponent {
     @input
     zmHost: ZMachineHost;
 
-    // @ts-ignore - require is provided by the Lens runtime
-    private vm: VoiceMLModule = require("LensStudio:VoiceMLModule");
+    /** Seconds after release to keep the session open for the final result. */
+    @input
+    processingGrace: number = 1.2;
 
-    private listening: boolean = false;
-    private micEnabledLogged: boolean = false;
-    /** Cooldown after a hard error so pinch noise can't cause a retry storm. */
-    private lastErrorTime: number = -10;
+    // @ts-ignore - require is provided by the Lens runtime
+    private asr: AsrModule = require("LensStudio:AsrModule");
+    private options: AsrModule.AsrTranscriptionOptions | null = null;
+    private available: boolean = true;
+
+    private capturing: boolean = false;
+    private processing: boolean = false;
+    private sessionActive: boolean = false;
+    private heard: string = "";
+    private lastResult: string = "";
+    private lastError: string = "";
+    private resultUntil: number = -1;
+    private updateCount: number = 0;
 
     onAwake() {
-        this.vm.onListeningUpdate.add((eventData: VoiceML.ListeningUpdateEventArgs) => {
-            if (eventData.transcription && eventData.isFinalTranscription) {
-                this.onFinalTranscription(eventData.transcription);
-            }
-        });
-        this.vm.onListeningError.add((eventData: VoiceML.ListeningErrorEventArgs) => {
-            print("VoiceInput error: " + eventData.error + " - " + eventData.description);
-            this.listening = false;
-            // @ts-ignore - getTime is a Lens runtime global
-            this.lastErrorTime = getTime();
-            // Release the session; otherwise the module stays "in use" and
-            // every retry fails with "Only a single VoiceML module is allowed".
-            try {
-                this.vm.stopListening();
-            } catch (e) {
-                // already stopped
-            }
-        });
-        this.vm.onListeningEnabled.add(() => {
-            // Fires repeatedly in Preview; log once.
-            if (!this.micEnabledLogged) {
-                this.micEnabledLogged = true;
-                print("VoiceInput: microphone listening enabled");
-            }
-        });
+        try {
+            this.options = AsrModule.AsrTranscriptionOptions.create();
+            this.options.mode = AsrModule.AsrMode.HighAccuracy;
+            this.options.silenceUntilTerminationMs = 1000;
+            this.options.onTranscriptionUpdateEvent.add((e: AsrModule.TranscriptionUpdateEvent) =>
+                this.onUpdate(e)
+            );
+            this.options.onTranscriptionErrorEvent.add((code: AsrModule.AsrStatusCode) =>
+                this.onError(code)
+            );
+        } catch (e) {
+            this.available = false;
+            print("VoiceInput: ASR module unavailable - device only (" + e + ")");
+            return;
+        }
+        // Warm the session up front (the Snap ASR gist starts transcribing in
+        // onAwake and keeps it running). Starting only on hold gives the cloud
+        // session no time to connect, so the first utterance is lost.
+        this.createEvent("OnStartEvent").bind(() => this.startSession());
+    }
 
-        // Spectacles pinch-to-talk on the LEFT hand (the right hand pinches
-        // to press UI buttons, which must not trigger listening). Skipped in
-        // the editor, where the simulated hand's pinch fires on every click.
-        // @ts-ignore - deviceInfoSystem is a Lens runtime global
-        if (global.deviceInfoSystem.isEditor()) {
-            print("VoiceInput: editor - use the Speak button");
-        } else {
-            try {
-                // @ts-ignore
-                const gestureModule: GestureModule = require("LensStudio:GestureModule");
-                gestureModule.getPinchDownEvent(GestureModule.HandType.Left).add(() => this.startListen());
-                gestureModule.getPinchUpEvent(GestureModule.HandType.Left).add(() => this.stopListen());
-                print("VoiceInput: LEFT-hand pinch-to-talk armed");
-            } catch (e) {
-                print("VoiceInput: GestureModule unavailable, use the Speak button (" + e + ")");
-            }
+    private startSession(): void {
+        if (!this.available || !this.options || this.sessionActive) {
+            return;
+        }
+        try {
+            this.asr.startTranscribing(this.options);
+            this.sessionActive = true;
+            this.lastError = "";
+            print("VoiceInput: ASR session live (hold the mic to talk)");
+        } catch (e) {
+            print("VoiceInput: startTranscribing failed (device only?): " + e);
         }
     }
 
-    /** UI entry point: toggle listening on/off (e.g. from the Speak button). */
-    /** True while actively listening for speech. */
+    private onUpdate(e: AsrModule.TranscriptionUpdateEvent): void {
+        if (this.updateCount < 12) {
+            this.updateCount++;
+            print(
+                "VoiceInput.update #" + this.updateCount +
+                " final=" + e.isFinal +
+                ' text="' + (e.text || "") + '"'
+            );
+        }
+        if (!this.capturing && !this.processing) {
+            return;
+        }
+        if (e.text && e.text.trim().length > 0) {
+            this.heard = e.text;
+        }
+        if (this.processing && e.isFinal) {
+            this.finishProcessing();
+        }
+    }
+
+    private onError(code: AsrModule.AsrStatusCode): void {
+        let label = "asr error " + code;
+        if (code === AsrModule.AsrStatusCode.Unauthenticated) {
+            label = "not signed in";
+        } else if (code === AsrModule.AsrStatusCode.NoInternet) {
+            label = "no internet";
+        } else if (code === AsrModule.AsrStatusCode.InternalError) {
+            label = "asr internal error";
+        }
+        this.lastError = label;
+        print("VoiceInput ASR error: " + code + " (" + label + ")");
+        this.capturing = false;
+        this.processing = false;
+        this.sessionActive = false; // dead session; holdStart will restart it
+    }
+
+    /** True while the mic is held (drives the listening orb). */
     public get isListening(): boolean {
-        return this.listening;
+        return this.capturing;
     }
 
-    /** Hold-to-talk: press. */
+    /** True in the post-release window waiting for the final transcription. */
+    public get isProcessing(): boolean {
+        return this.processing;
+    }
+
+    /** Hold-to-talk: press — open the capture window (session stays warm). */
     public holdStart(): void {
-        this.startListen();
+        this.heard = "";
+        this.capturing = true;
+        this.processing = false;
+        if (!this.available) {
+            print("VoiceInput: ASR unavailable (test on Spectacles)");
+            return;
+        }
+        // Restart the session if a prior error (or a finalized segment) killed
+        // it; otherwise the warm session keeps running.
+        if (!this.sessionActive) {
+            this.startSession();
+        }
     }
 
-    /** Hold-to-talk: release (final transcription arrives after stop). */
+    /** Hold-to-talk: release — grace window, then submit (session stays warm). */
     public holdEnd(): void {
-        this.stopListen();
+        if (!this.capturing) {
+            return;
+        }
+        this.capturing = false;
+        this.processing = true;
+        const evt = this.createEvent("DelayedCallbackEvent");
+        evt.bind(() => this.finishProcessing());
+        evt.reset(this.processingGrace);
     }
 
     public toggleListen(): void {
-        if (this.listening) {
-            this.stopListen();
+        if (this.capturing) {
+            this.holdEnd();
         } else {
-            this.startListen();
+            this.holdStart();
         }
     }
 
-    private startListen(): void {
-        if (this.listening) {
-            return;
+    private finishProcessing(): void {
+        if (!this.processing) {
+            return; // already handled (final arrived first, or a stale timer)
         }
+        this.processing = false;
+        // Leave the session running (warm) for the next command — matches the
+        // Snap gist, which starts once and never stops between utterances.
+        const command = this.normalize(this.heard);
+        this.lastResult = command;
         // @ts-ignore - getTime is a Lens runtime global
-        if (getTime() - this.lastErrorTime < 3.0) {
-            return; // cooling down after an error (e.g. mic permission denied)
-        }
-        this.listening = true;
-        try {
-            const options = VoiceML.ListeningOptions.create();
-            options.shouldReturnAsrTranscription = true;
-            options.shouldReturnInterimAsrTranscription = false;
-            this.vm.startListening(options);
-            print("VoiceInput: listening...");
-        } catch (e) {
-            this.listening = false;
-            // @ts-ignore
-            this.lastErrorTime = getTime();
-            print("VoiceInput: startListening failed: " + e);
-        }
-    }
-
-    private stopListen(): void {
-        if (!this.listening) {
-            return;
-        }
-        this.listening = false;
-        this.vm.stopListening();
-        print("VoiceInput: stopped");
-    }
-
-    private onFinalTranscription(transcription: string): void {
-        const command = transcription
-            .toLowerCase()
-            .replace(/[^a-z0-9 ]/g, "")
-            .replace(/\s+/g, " ")
-            .trim();
+        this.resultUntil = getTime() + 2.5;
+        this.heard = "";
         if (command.length === 0) {
+            print("VoiceInput: nothing heard");
             return;
         }
         print('VoiceInput: heard "' + command + '"');
         if (this.zmHost) {
             this.zmHost.submitCommand(command);
         }
+    }
+
+    private normalize(transcription: string): string {
+        return (transcription || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9 ]/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    /**
+     * Animated single-line status for the mic label. Empty when idle.
+     * Time-driven so callers just poll it each frame.
+     */
+    public get statusLine(): string {
+        // @ts-ignore - getTime is a Lens runtime global
+        const t = getTime();
+        if (!this.available) {
+            return "voice needs Spectacles";
+        }
+        if (this.lastError.length > 0 && !this.capturing && !this.processing) {
+            return "! " + this.lastError;
+        }
+        if (this.capturing) {
+            const dots = ".".repeat(1 + (Math.floor(t * 3) % 3));
+            return this.heard.length > 0 ? "> " + this.heard : "[ listening" + dots + " ]";
+        }
+        if (this.processing) {
+            const spin = "|/-\\"[Math.floor(t * 10) % 4];
+            return spin + " processing voice command " + spin;
+        }
+        if (t < this.resultUntil) {
+            return this.lastResult.length > 0 ? "heard: " + this.lastResult : "( no speech heard )";
+        }
+        return "";
     }
 }

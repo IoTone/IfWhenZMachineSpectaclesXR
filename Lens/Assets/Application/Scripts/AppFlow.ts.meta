@@ -27,8 +27,10 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     gameRigNames: false
+    hideOnlyRigNames: false
     libraryMenu: false
     minSplashSeconds: false
+    roomIllustrator: false
     splash: false
     zmHost: false
   ScriptTypesHidden:
@@ -43,8 +45,10 @@
     - zmHost: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
       splash: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       libraryMenu: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      roomIllustrator: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
       minSplashSeconds: !<float> 3.000000
       gameRigNames: "ScrollMenu,MicProp,Output,Status,SceneIllustration,SpatialFrame"
+      hideOnlyRigNames: "SceneIllustration,SpatialFrame"
   ScriptTypes:
     -
       {}
@@ -52,5 +56,7 @@
     - // @input AssignableType zmHost
     - // @input AssignableType_1 splash
     - // @input AssignableType_2 libraryMenu
-    - // @input float minSplashSeconds = 3
-    - '// @input string gameRigNames = "ScrollMenu,MicProp,Output,Status,SceneIllustration,SpatialFrame,RoomIllustrator"'
+    - // @input AssignableType_3 roomIllustrator
+    - // @input float minSplashSeconds = 10
+    - '// @input string gameRigNames = "ScrollMenu,MicProp,Output,Status,RoomIllustrator"'
+    - '// @input string hideOnlyRigNames = "SceneIllustration,SpatialFrame"'

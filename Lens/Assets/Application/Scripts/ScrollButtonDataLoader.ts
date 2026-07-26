@@ -32,6 +32,10 @@ const VERBS: { label: string; command: string; transitive: boolean }[] = [
     { label: "Drop", command: "drop", transitive: true },
     { label: "Look", command: "look", transitive: false },
     { label: "Inventory", command: "inventory", transitive: false },
+    // Answer buttons: stories routinely ask direct questions ("Would you
+    // like instructions?") that need a bare yes/no.
+    { label: "Yes", command: "yes", transitive: false },
+    { label: "No", command: "no", transitive: false },
 ];
 
 const COMPASS = ["North", "South", "East", "West", "Up", "Down"];
@@ -72,6 +76,12 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
         this.rebuild();
         if (this.zmHost) {
             this.zmHost.setSceneContextListener((ctx) => {
+                // ctx === null means a game switch: drop the previous game's
+                // nouns and any half-built command so the menu is specific to
+                // the new story from the first frame.
+                if (!ctx) {
+                    this.pendingVerb = null;
+                }
                 this.lastContext = ctx;
                 this.rebuild();
             });

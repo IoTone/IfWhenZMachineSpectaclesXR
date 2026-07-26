@@ -77,10 +77,23 @@ export class RoomIllustrator extends BaseScriptComponent {
     /** Room that changed while a generation was in flight; served next. */
     private pendingRoom: string | null = null;
 
+    /** Hide both display paths (no image yet / stale image must not show). */
+    public hideImages(): void {
+        if (this.flatImage) {
+            this.flatImage.getSceneObject().enabled = false;
+        }
+        if (this.spatialFrame) {
+            this.spatialFrame.getSceneObject().enabled = false;
+        }
+    }
+
     onAwake() {
         // @ts-ignore - Lens runtime global
         this.store = global.persistentStorageSystem ? global.persistentStorageSystem.store : null;
         this.createEvent("OnStartEvent").bind(() => {
+            // Nothing to show yet: the Image component's default texture is
+            // a white placeholder that must never reach the player's eyes.
+            this.hideImages();
             // Fill the RSG token store up front: both Imagen and the Spatial
             // Image queue read it, including on cache-hit paths that never
             // call generate().
@@ -134,7 +147,18 @@ export class RoomIllustrator extends BaseScriptComponent {
         });
     }
 
+    private lastGameKey: string | null = null;
+
     private onContext(ctx: any): void {
+        // Game switch: the previous story's image must never linger into the
+        // next one. Hide both display paths until the new game illustrates.
+        const gameKey = this.zmHost ? this.zmHost.gameKey : "unknown";
+        if (gameKey !== this.lastGameKey) {
+            this.lastGameKey = gameKey;
+            this.lastRoom = null;
+            this.pendingRoom = null;
+            this.hideImages();
+        }
         if (!ctx || !ctx.room) {
             return;
         }
@@ -305,6 +329,7 @@ export class RoomIllustrator extends BaseScriptComponent {
         }
         if (this.spatialFrame) {
             try {
+                this.spatialFrame.getSceneObject().enabled = true;
                 (this.spatialFrame as any).setImage(texture, true);
             } catch (e) {
                 print("RoomIllustrator: spatialization unavailable (" + e + ")");

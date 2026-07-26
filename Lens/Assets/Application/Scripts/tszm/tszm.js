@@ -4105,6 +4105,25 @@ var require_host_core = __commonJS({
               this.pending = s.slice(i);
               break;
             }
+            const finalByte = s[j];
+            const params = s.slice(i + 2, j);
+            if (finalByte === "H" || finalByte === "f") {
+              const parts = params.split(";");
+              const row = parts[0] !== "" && parts[0] !== void 0 ? parseInt(parts[0], 10) : 1;
+              if (row === 1) {
+                if (!this.inStatus) {
+                  this.inStatus = true;
+                  this.statusBuf = "";
+                } else if (this.statusBuf.length > 0 && !this.statusBuf.endsWith(" ")) {
+                  this.statusBuf += "   ";
+                }
+              } else if (this.inStatus) {
+                const line = this.statusBuf.replace(/[ \t]{2,}/g, "   ").trim();
+                if (line) this.onStatus?.(line);
+                this.inStatus = false;
+                this.statusBuf = "";
+              }
+            }
             i = j + 1;
             continue;
           }
@@ -4113,7 +4132,16 @@ var require_host_core = __commonJS({
         if (text) this.onText?.(text);
       }
     };
-    var PLAYER_NAMES = ["you", "yourself", "cretin", "adventurer", "player", "self"];
+    var PLAYER_NAMES = ["you", "yourself", "cretin", "adventurer", "player", "self", "(self object)"];
+    function isMenuNoun(name) {
+      if (!name) return false;
+      const n = name.trim();
+      if (!n) return false;
+      if (/^\(.*\)$/.test(n)) return false;
+      if (n.indexOf("_") !== -1) return false;
+      return true;
+    }
+    var MENU_EXIT_KEY = String.fromCharCode(27);
     function objGetChild(vm, id) {
       const a = vm.getObjectAddress(id);
       return vm.header.version <= 3 ? vm.memory.readUInt8(a + 6) : vm.memory.readUInt16BE(a + 10);
@@ -4132,11 +4160,92 @@ var require_host_core = __commonJS({
       }
       return out;
     }
-    function getSceneContext(zm, visibleText) {
+    function objGetParent(vm, id) {
+      const a = vm.getObjectAddress(id);
+      return vm.header.version <= 3 ? vm.memory.readUInt8(a + 4) : vm.memory.readUInt16BE(a + 6);
+    }
+    function isPlayerName(name) {
+      return !!name && PLAYER_NAMES.indexOf(name.trim().toLowerCase()) !== -1;
+    }
+    function findPlayerRoom(zm) {
+      for (let id = 1; id < 2e3; id++) {
+        let name;
+        try {
+          name = zm.getObjectName(id);
+        } catch (err) {
+          break;
+        }
+        if (!isPlayerName(name)) continue;
+        try {
+          const parent = objGetParent(zm, id);
+          if (parent && objChildren(zm, parent).indexOf(id) !== -1) {
+            const roomName = zm.getObjectName(parent);
+            if (roomName && roomName.trim()) {
+              return { playerId: id, roomId: parent };
+            }
+          }
+        } catch (err) {
+        }
+      }
+      return null;
+    }
+    function findObjectByName(zm, wanted) {
+      const target = wanted.trim().toLowerCase();
+      if (!target) return 0;
+      for (let id = 1; id < 2e3; id++) {
+        let name;
+        try {
+          name = zm.getObjectName(id);
+        } catch (err) {
+          break;
+        }
+        if (name && name.trim().toLowerCase() === target) return id;
+      }
+      return 0;
+    }
+    function getSceneContext(zm, visibleText, statusLine) {
       try {
         if (!zm.memory || !zm.header) return null;
-        const roomId = zm.getGlobalVariableValue(16);
-        if (!roomId || roomId > 2e3) return null;
+        let roomId = 0;
+        const found = findPlayerRoom(zm);
+        if (found) {
+          roomId = found.roomId;
+        } else {
+          const g0 = zm.getGlobalVariableValue(16);
+          if (g0 && g0 <= 2e3) {
+            try {
+              const g0name = zm.getObjectName(g0);
+              if (g0name && g0name.trim() && objChildren(zm, g0).length > 0) {
+                roomId = g0;
+              }
+            } catch (err) {
+            }
+          }
+        }
+        if (!roomId) {
+          const candidates = [];
+          if (statusLine) {
+            candidates.push(statusLine.split(/\s{2,}/)[0] || "");
+          }
+          if (visibleText) {
+            const tail = visibleText.slice(-240);
+            const re = /(?:^|[ ]{2,})([a-z][a-z'\u2019 -]{2,28}?)[ ]{3,}(?=\S)/g;
+            let m;
+            while ((m = re.exec(tail)) !== null) {
+              candidates.push(m[1]);
+            }
+          }
+          let textRoom = "";
+          for (let i = 0; i < candidates.length && !roomId; i++) {
+            const c = (candidates[i] || "").trim();
+            if (!c) continue;
+            roomId = findObjectByName(zm, c);
+            if (!roomId && !textRoom) textRoom = c;
+          }
+          if (!roomId) {
+            return textRoom ? { room: textRoom, roomObjects: [], inventory: [] } : null;
+          }
+        }
         const roomName = zm.getObjectName(roomId);
         if (!roomName || !roomName.trim()) return null;
         const named = (id) => ({ id, name: (zm.getObjectName(id) || "").trim() });
@@ -4163,8 +4272,8 @@ var require_host_core = __commonJS({
           zm.setPlayerObjectNumber(player.id);
         }
         const roomIds = kids.filter((o) => !player || o.id !== player.id).map((o) => o.id);
-        const roomObjects = withContents(roomIds).map(named).filter((o) => o.name);
-        const inventory = player ? withContents(objChildren(zm, player.id)).map(named).filter((o) => o.name) : [];
+        const roomObjects = withContents(roomIds).map(named).filter((o) => isMenuNoun(o.name));
+        const inventory = player ? withContents(objChildren(zm, player.id)).map(named).filter((o) => isMenuNoun(o.name)) : [];
         return { room: roomName.trim(), roomObjects, inventory };
       } catch (err) {
         return null;
@@ -4190,7 +4299,11 @@ var require_host_core = __commonJS({
             this.turnText = this.turnText.slice(-8e3);
           }
           userOnText?.(t);
-        }, opts.onStatus);
+        }, (status) => {
+          this.lastStatus = status;
+          opts.onStatus?.(status);
+        });
+        this.lastStatus = "";
         this.inputQueue = [];
         this.pendingLine = null;
         this.pendingChar = null;
@@ -4212,7 +4325,7 @@ var require_host_core = __commonJS({
         if (this.pendingChar) {
           const resolve = this.pendingChar;
           this.pendingChar = null;
-          resolve("\r");
+          resolve(MENU_EXIT_KEY);
           if (line.trim() !== "") this.inputQueue.push(line);
           return;
         }
@@ -4248,7 +4361,7 @@ var require_host_core = __commonJS({
         });
       }
       async readChar() {
-        if (this.inputQueue.length > 0) return "\r";
+        if (this.inputQueue.length > 0) return MENU_EXIT_KEY;
         return new Promise((resolve) => {
           this.pendingChar = resolve;
         });
@@ -4270,13 +4383,13 @@ var require_host_core = __commonJS({
       let lastRoom = null;
       if (opts.onPrompt) {
         device.onAwaitInput = () => {
-          const preview = getSceneContext(zm, device.seenText + device.turnText);
+          const preview = getSceneContext(zm, device.seenText + device.turnText, device.lastStatus);
           const roomChanged = preview !== null && preview.room !== lastRoom;
           if (preview !== null) {
             lastRoom = preview.room;
           }
           device.commitTurnText(roomChanged);
-          opts.onPrompt(getSceneContext(zm, device.seenText));
+          opts.onPrompt(getSceneContext(zm, device.seenText, device.lastStatus));
         };
       }
       let running = true;
@@ -4305,7 +4418,7 @@ var require_host_core = __commonJS({
           running = false;
         },
         /** On-demand scene snapshot (also delivered via opts.onPrompt). */
-        sceneContext: () => getSceneContext(zm, device.seenText)
+        sceneContext: () => getSceneContext(zm, device.seenText, device.lastStatus)
       };
     }
     module2.exports = { Vt100Filter, SpectaclesZDevice, runGame, getSceneContext };

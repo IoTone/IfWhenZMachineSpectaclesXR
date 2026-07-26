@@ -27,10 +27,10 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     buttonPrefab: false
+    clearX: false
+    clearY: false
     loader: false
     menuRoot: false
-    voiceInput: false
-    yPosition: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -42,15 +42,15 @@
   DefaultScriptInputs:
     - buttonPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
       menuRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      voiceInput: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
-      loader: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
-      yPosition: !<float> -16.000000
+      loader: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      clearX: !<float> -14.000000
+      clearY: !<float> 0.000000
   ScriptTypes:
     -
       {}
   InputLines:
     - // @input Asset.ObjectPrefab buttonPrefab
     - // @input SceneObject menuRoot
-    - // @input AssignableType voiceInput
-    - // @input AssignableType_1 loader
-    - // @input float yPosition = -20
+    - // @input AssignableType loader
+    - // @input float clearX = -14
+    - // @input float clearY

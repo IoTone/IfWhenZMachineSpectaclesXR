@@ -26,6 +26,7 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    processingGrace: false
     zmHost: false
   ScriptTypesHidden:
     {}
@@ -37,8 +38,10 @@
     []
   DefaultScriptInputs:
     - zmHost: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      processingGrace: 1.200000
   ScriptTypes:
     -
       {}
   InputLines:
     - // @input AssignableType zmHost
+    - // @input float processingGrace = 1.2

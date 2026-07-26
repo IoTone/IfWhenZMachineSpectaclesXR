@@ -27,6 +27,8 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     interactable: false
+    micPosition: false
+    statusFont: false
     voiceInput: false
   ScriptTypesHidden:
     {}
@@ -39,9 +41,13 @@
   DefaultScriptInputs:
     - voiceInput: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
       interactable: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      micPosition: !<Vec3> {x: 18.000000, y: -22.000000, z: 18.000000}
+      statusFont: !<reference.Font> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
   InputLines:
     - // @input AssignableType voiceInput
     - // @input AssignableType_1 interactable
+    - "// @input vec3 micPosition = {18,-22,18}"
+    - // @input Asset.Font statusFont

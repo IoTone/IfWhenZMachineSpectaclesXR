@@ -14,17 +14,17 @@ const adventure = require("./Adventure.js");
 // @ts-ignore
 const dreamhold = require("./Dreamhold.js");
 // @ts-ignore
-const bronze = require("./Bronze.js");
+const christminster = require("./Christminster.js");
 // @ts-ignore
 const suvehNux = require("./SuvehNux.js");
 // @ts-ignore
 const nineOhFive = require("./NineOhFive.js");
 // @ts-ignore
-const photopia = require("./Photopia.js");
+const delusions = require("./Delusions.js");
 // @ts-ignore
 const spiderAndWeb = require("./SpiderAndWeb.js");
 // @ts-ignore
-const violet = require("./Violet.js");
+const metamorphoses = require("./Metamorphoses.js");
 // @ts-ignore
 const slouching = require("./SlouchingTowardsBedlam.js");
 
@@ -72,14 +72,14 @@ export const GAMES: GameEntry[] = [
         module: dreamhold,
     },
     {
-        id: "bronze",
-        title: "Bronze",
-        author: "Emily Short",
-        year: 2006,
+        id: "christminster",
+        title: "Christminster",
+        author: "Gareth Rees",
+        year: 1995,
         rating: "PG",
-        blurb: "Beauty and the Beast, retold. Explore the Beast's castle and unravel the bargain that binds him. Adaptive hints guide you.",
-        attribution: "Bronze by Emily Short. Creative Commons licensed; from the IF Archive.",
-        module: bronze,
+        blurb: "A summer's day at an Oxbridge college. Your brother has vanished behind the great wooden gate, and a centuries-old conspiracy is stirring. A literate, elegant mystery.",
+        attribution: "Christminster by Gareth Rees. Freely distributable; from the IF Archive.",
+        module: christminster,
     },
     {
         id: "suvehnux",
@@ -102,14 +102,14 @@ export const GAMES: GameEntry[] = [
         module: nineOhFive,
     },
     {
-        id: "photopia",
-        title: "Photopia",
-        author: "Adam Cadre",
-        year: 1998,
+        id: "delusions",
+        title: "Delusions",
+        author: "C.E. Forman",
+        year: 1996,
         rating: "PG-13",
-        blurb: "Interwoven stories in crystalline prose. A landmark of narrative interactive fiction. Bring tissues.",
-        attribution: "Photopia by Adam Cadre. Freely distributable; from the IF Archive.",
-        module: photopia,
+        blurb: "You wake with no memory aboard a strange vessel, haunted by visions that may not be your own. A mind-bending science-fiction mystery.",
+        attribution: "Delusions by C.E. Forman. Freely distributable; from the IF Archive.",
+        module: delusions,
     },
     {
         id: "spiderweb",
@@ -122,14 +122,14 @@ export const GAMES: GameEntry[] = [
         module: spiderAndWeb,
     },
     {
-        id: "violet",
-        title: "Violet",
-        author: "Jeremy Freese",
-        year: 2008,
-        rating: "PG-13",
-        blurb: "Write one thousand words today or lose her. One room, one deadline, and your girlfriend's voice in your head.",
-        attribution: "Violet by Jeremy Freese. Freely distributable; from the IF Archive.",
-        module: violet,
+        id: "metamorphoses",
+        title: "Metamorphoses",
+        author: "Emily Short",
+        year: 2000,
+        rating: "PG",
+        blurb: "A servant sent into a strange manor of shifting matter, where you can shrink, grow, and transmute the world to solve its puzzles. Quiet, surreal, and beautifully written.",
+        attribution: "Metamorphoses by Emily Short. Freely distributable; from the IF Archive.",
+        module: metamorphoses,
     },
     {
         id: "slouching",

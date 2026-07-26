@@ -1,4 +1,5 @@
 import { GameLibraryMenu } from "./GameLibraryMenu";
+import { RoomIllustrator } from "./RoomIllustrator";
 import { SplashTunnel } from "./SplashTunnel";
 import { ZMachineHost } from "./ZMachineHost";
 
@@ -25,6 +26,11 @@ export class AppFlow extends BaseScriptComponent {
     @allowUndefined
     libraryMenu: GameLibraryMenu;
 
+    /** Wired so state changes can hide stale/placeholder illustrations. */
+    @input
+    @allowUndefined
+    roomIllustrator: RoomIllustrator;
+
     /** Minimum time the splash stays up (seconds). */
     @input
     minSplashSeconds: number = 10.0;
@@ -37,8 +43,22 @@ export class AppFlow extends BaseScriptComponent {
      * ZMachineHost object: the interpreter's frame-yield events must keep
      * firing for the game to run.
      */
+    /**
+     * SceneIllustration/SpatialFrame are NOT in this list: RoomIllustrator
+     * owns their visibility (blanket re-enabling them here showed the Image
+     * component's white placeholder before any texture existed).
+     */
     @input
-    gameRigNames: string = "ScrollMenu,MicProp,Output,Status,SceneIllustration,SpatialFrame,RoomIllustrator";
+    gameRigNames: string = "ScrollMenu,MicProp,Output,Status,RoomIllustrator";
+
+    /**
+     * Illustration objects: disabled at startup (from code, so a crash that
+     * rolls back scene state can't resurrect the Image component's no-texture
+     * placeholder), and NEVER re-enabled by AppFlow. RoomIllustrator turns
+     * them on only once a real generated texture is ready.
+     */
+    @input
+    hideOnlyRigNames: string = "SceneIllustration,SpatialFrame";
 
     private engineStarted: boolean = false;
     private rigs: SceneObject[] = [];
@@ -46,6 +66,18 @@ export class AppFlow extends BaseScriptComponent {
     onAwake() {
         this.collectRigs();
         this.setGameRigsEnabled(false);
+        // Illustration planes: force off at frame 0, leave off (RoomIllustrator
+        // owns re-enable). This kills the placeholder icon during the splash.
+        for (const name of this.hideOnlyRigNames.split(",")) {
+            const trimmed = name.trim();
+            if (!trimmed) {
+                continue;
+            }
+            const obj = this.findByName(trimmed);
+            if (obj) {
+                obj.enabled = false;
+            }
+        }
         if (this.libraryMenu) {
             this.libraryMenu.getSceneObject().enabled = false;
         }
@@ -95,6 +127,9 @@ export class AppFlow extends BaseScriptComponent {
     /** Return to the library (in-game "Game Library" button). */
     public showLibrary(): void {
         this.setGameRigsEnabled(false);
+        if (this.roomIllustrator) {
+            this.roomIllustrator.hideImages();
+        }
         if (this.libraryMenu) {
             this.libraryMenu.getSceneObject().enabled = true;
         }
@@ -130,5 +165,28 @@ export class AppFlow extends BaseScriptComponent {
                 rig.enabled = on;
             }
         }
+    }
+
+    /** Depth-first search for a scene object by name (null if not found). */
+    private findByName(name: string): SceneObject | null {
+        let hit: SceneObject | null = null;
+        const visit = (o: SceneObject) => {
+            if (hit) {
+                return;
+            }
+            if (o.name === name) {
+                hit = o;
+                return;
+            }
+            for (let i = 0; i < o.getChildrenCount(); i++) {
+                visit(o.getChild(i));
+            }
+        };
+        // @ts-ignore - global.scene is a Lens runtime API
+        const scene = global.scene;
+        for (let i = 0; i < scene.getRootObjectsCount(); i++) {
+            visit(scene.getRootObject(i));
+        }
+        return hit;
     }
 }

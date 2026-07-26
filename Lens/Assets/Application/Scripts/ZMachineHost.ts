@@ -288,6 +288,13 @@ export class ZMachineHost extends BaseScriptComponent {
         if (this.outputText) {
             this.outputText.text = "";
         }
+        // Tell subscribers the world is gone: the command menu must drop the
+        // previous game's nouns immediately (a new game can take several
+        // turns to reach its first prompt), and the illustrator must clear
+        // the old room's image.
+        for (const listener of this.sceneContextListeners) {
+            listener(null);
+        }
     }
 
     /** Boot the engine + first game. Idempotent (AppFlow or autoStart calls it). */
