@@ -60,10 +60,11 @@ export class VoiceInput extends BaseScriptComponent {
             print("VoiceInput: ASR module unavailable - device only (" + e + ")");
             return;
         }
-        // Warm the session up front (the Snap ASR gist starts transcribing in
-        // onAwake and keeps it running). Starting only on hold gives the cloud
-        // session no time to connect, so the first utterance is lost.
-        this.createEvent("OnStartEvent").bind(() => this.startSession());
+        // On-demand transcription (see the class header's lifecycle): the ASR
+        // session is started on holdStart and stopped after each command in
+        // finishProcessing. We deliberately do NOT warm it at boot — an
+        // always-on session streams the mic to cloud ASR continuously, which
+        // overheats Spectacles within ~30s of a session.
     }
 
     private startSession(): void {
@@ -78,6 +79,21 @@ export class VoiceInput extends BaseScriptComponent {
         } catch (e) {
             print("VoiceInput: startTranscribing failed (device only?): " + e);
         }
+    }
+
+    /** Stop streaming the mic to ASR. Called after each command so the mic is
+     *  cold between utterances; holdStart restarts it on the next hold. */
+    private stopSession(): void {
+        if (!this.available || !this.sessionActive) {
+            return;
+        }
+        try {
+            this.asr.stopTranscribing();
+            print("VoiceInput: ASR session stopped (mic cold)");
+        } catch (e) {
+            print("VoiceInput: stopTranscribing failed: " + e);
+        }
+        this.sessionActive = false;
     }
 
     private onUpdate(e: AsrModule.TranscriptionUpdateEvent): void {
@@ -167,8 +183,10 @@ export class VoiceInput extends BaseScriptComponent {
             return; // already handled (final arrived first, or a stale timer)
         }
         this.processing = false;
-        // Leave the session running (warm) for the next command — matches the
-        // Snap gist, which starts once and never stops between utterances.
+        // The command has been captured, so stop streaming the mic to cloud
+        // ASR. Leaving it warm between commands overheats the device; holdStart
+        // restarts the session for the next utterance.
+        this.stopSession();
         const command = this.normalize(this.heard);
         this.lastResult = command;
         // @ts-ignore - getTime is a Lens runtime global
