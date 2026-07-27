@@ -20,6 +20,22 @@
 //   ESC [ ... <letter>     CSI sequences (cursor moves, scroll region, styles)
 // Between ESC7/ESC8 the text (minus CSI noise) is the status line; everything
 // outside (minus CSI noise) is game text.
+// Collapse an upper-window buffer into one clean status line. Rows arrive
+// space-padded, and Inform redraws each line twice (full-width, then
+// repositioned at a column), so segment on runs of 2+ spaces, drop the
+// consecutive duplicates the double-draw produces, and join what's left.
+function normalizeStatusLine(buf) {
+    const segs = buf
+        .split(/[ \t]{2,}|\n+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+    const out = [];
+    for (const seg of segs) {
+        if (out[out.length - 1] !== seg) out.push(seg);
+    }
+    return out.join("   ");
+}
+
 class Vt100Filter {
     constructor(onText, onStatus) {
         this.onText = onText;
@@ -27,6 +43,12 @@ class Vt100Filter {
         this.inStatus = false;
         this.statusBuf = "";
         this.pending = ""; // holds a trailing partial escape sequence between writes
+        // Height of the upper (status/HUD) window in rows. Learned from the
+        // scroll-region escape split_window emits; 1 covers the classic
+        // single-line status bar. Games with a multi-line header (e.g.
+        // Metamorphoses: room name + a persistent elemental legend) set this
+        // higher so every header row is routed to the HUD, not the transcript.
+        this.upperRows = 1;
     }
     feed(chunk) {
         let s = this.pending + chunk;
@@ -58,7 +80,7 @@ class Vt100Filter {
             if (next === "8") {
                 // cursor restore: status-line block ends
                 if (this.inStatus) {
-                    const line = this.statusBuf.replace(/\s+/g, " ").trim();
+                    const line = normalizeStatusLine(this.statusBuf);
                     if (line) this.onStatus?.(line);
                 }
                 this.inStatus = false;
@@ -76,23 +98,35 @@ class Vt100Filter {
                 }
                 const finalByte = s[j];
                 const params = s.slice(i + 2, j);
+                if (finalByte === "r") {
+                    // Scroll region ESC[{top};{bottom}r (DECSTBM). split_window
+                    // sets top = upperLines + 1, so rows 1..top-1 are the upper
+                    // (status/HUD) window. Learn its height so a multi-line
+                    // header is routed to the HUD in full instead of leaking
+                    // its lower rows into the transcript.
+                    const top = parseInt(params.split(";")[0] || "1", 10) || 1;
+                    this.upperRows = Math.max(0, top - 1);
+                    i = j + 1;
+                    continue;
+                }
                 if (finalByte === "H" || finalByte === "f") {
                     // Cursor position ESC[row;colH. z4+ games draw the status
-                    // bar by moving to row 1 (set_window 1); text emitted there
-                    // is the status line, NOT transcript. Inform positions the
-                    // score/moves with cursor jumps (no spaces between), so a
-                    // same-row jump gets a separator.
+                    // area by moving into the upper window (rows 1..upperRows);
+                    // text emitted there is the status line, NOT transcript.
+                    // Inform positions segments with cursor jumps (no spaces
+                    // between), so a jump inside the window gets a separator.
                     const parts = params.split(";");
                     const row = parts[0] !== "" && parts[0] !== undefined ? parseInt(parts[0], 10) : 1;
-                    if (row === 1) {
+                    const statusRows = Math.max(1, this.upperRows);
+                    if (row <= statusRows) {
                         if (!this.inStatus) {
                             this.inStatus = true;
                             this.statusBuf = "";
                         } else if (this.statusBuf.length > 0 && !this.statusBuf.endsWith(" ")) {
-                            this.statusBuf += "   "; // column jump between segments
+                            this.statusBuf += "   "; // row/column jump between segments
                         }
                     } else if (this.inStatus) {
-                        const line = this.statusBuf.replace(/[ \t]{2,}/g, "   ").trim();
+                        const line = normalizeStatusLine(this.statusBuf);
                         if (line) this.onStatus?.(line);
                         this.inStatus = false;
                         this.statusBuf = "";

@@ -4060,6 +4060,14 @@ var require_core = __commonJS({
 var require_host_core = __commonJS({
   "spectacles/host-core.js"(exports2, module2) {
     "use strict";
+    function normalizeStatusLine(buf) {
+      const segs = buf.split(/[ \t]{2,}|\n+/).map((s) => s.trim()).filter((s) => s.length > 0);
+      const out = [];
+      for (const seg of segs) {
+        if (out[out.length - 1] !== seg) out.push(seg);
+      }
+      return out.join("   ");
+    }
     var Vt100Filter = class {
       constructor(onText, onStatus) {
         this.onText = onText;
@@ -4067,6 +4075,7 @@ var require_host_core = __commonJS({
         this.inStatus = false;
         this.statusBuf = "";
         this.pending = "";
+        this.upperRows = 1;
       }
       feed(chunk) {
         let s = this.pending + chunk;
@@ -4094,7 +4103,7 @@ var require_host_core = __commonJS({
           }
           if (next === "8") {
             if (this.inStatus) {
-              const line = this.statusBuf.replace(/\s+/g, " ").trim();
+              const line = normalizeStatusLine(this.statusBuf);
               if (line) this.onStatus?.(line);
             }
             this.inStatus = false;
@@ -4111,10 +4120,17 @@ var require_host_core = __commonJS({
             }
             const finalByte = s[j];
             const params = s.slice(i + 2, j);
+            if (finalByte === "r") {
+              const top = parseInt(params.split(";")[0] || "1", 10) || 1;
+              this.upperRows = Math.max(0, top - 1);
+              i = j + 1;
+              continue;
+            }
             if (finalByte === "H" || finalByte === "f") {
               const parts = params.split(";");
               const row = parts[0] !== "" && parts[0] !== void 0 ? parseInt(parts[0], 10) : 1;
-              if (row === 1) {
+              const statusRows = Math.max(1, this.upperRows);
+              if (row <= statusRows) {
                 if (!this.inStatus) {
                   this.inStatus = true;
                   this.statusBuf = "";
@@ -4122,7 +4138,7 @@ var require_host_core = __commonJS({
                   this.statusBuf += "   ";
                 }
               } else if (this.inStatus) {
-                const line = this.statusBuf.replace(/[ \t]{2,}/g, "   ").trim();
+                const line = normalizeStatusLine(this.statusBuf);
                 if (line) this.onStatus?.(line);
                 this.inStatus = false;
                 this.statusBuf = "";
