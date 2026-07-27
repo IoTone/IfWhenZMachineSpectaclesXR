@@ -24,6 +24,15 @@ export class SplashTunnel extends BaseScriptComponent {
     @allowUndefined
     taglineText: Text;
 
+    /** Optional: a Text for the version line. If left unset, one is created in
+     *  code below the tagline, so the version shows with no editor wiring. */
+    @input
+    @allowUndefined
+    versionText: Text;
+
+    /** App version shown on the splash. Bump this on release. */
+    private static readonly APP_VERSION = "0.2";
+
     /** Character grid size (columns x rows). */
     @input
     cols: number = 38;
@@ -63,6 +72,12 @@ export class SplashTunnel extends BaseScriptComponent {
                 this.taglineText.getSceneObject().getTransform().setLocalPosition(new vec3(0, -4.5, 1));
                 this.taglineText.getSceneObject().enabled = false;
             }
+            const version = this.ensureVersionText();
+            if (version) {
+                version.text = "Version " + SplashTunnel.APP_VERSION;
+                version.getSceneObject().getTransform().setLocalPosition(new vec3(0, -7, 1));
+                version.getSceneObject().enabled = false;
+            }
             this.renderFrame();
         });
         const tick = this.createEvent("UpdateEvent");
@@ -82,6 +97,9 @@ export class SplashTunnel extends BaseScriptComponent {
             }
             if (this.taglineText) {
                 this.taglineText.getSceneObject().enabled = true;
+            }
+            if (this.versionText) {
+                this.versionText.getSceneObject().enabled = true;
             }
         }
         if (this.accum >= 1 / this.fps) {
@@ -118,6 +136,37 @@ export class SplashTunnel extends BaseScriptComponent {
             }
         });
         evt.reset(0.45);
+    }
+
+    /**
+     * Return the version Text, creating one in code if none was wired in the
+     * editor. The created object is a sibling of the tagline (same coordinate
+     * space) so its local position lines up with the other splash text, and it
+     * borrows the tagline's font for a consistent look.
+     */
+    private ensureVersionText(): Text | null {
+        if (this.versionText) {
+            return this.versionText;
+        }
+        try {
+            const anchor = this.taglineText ? this.taglineText.getSceneObject() : this.getSceneObject();
+            const parent = anchor.getParent() || this.getSceneObject();
+            // @ts-ignore - global.scene is a Lens runtime API
+            const obj = global.scene.createSceneObject("SplashVersion");
+            obj.setParent(parent);
+            const txt = obj.createComponent("Component.Text") as Text;
+            if (this.taglineText && (this.taglineText as any).font) {
+                (txt as any).font = (this.taglineText as any).font;
+            }
+            (txt as any).horizontalAlignment = 1; // center
+            txt.size = 28;
+            txt.textFill.color = new vec4(0.6, 0.65, 0.75, 1.0); // muted slate
+            this.versionText = txt;
+            return txt;
+        } catch (e) {
+            print("SplashTunnel: could not create version text (" + e + ")");
+            return null;
+        }
     }
 
     private renderFrame(): void {
