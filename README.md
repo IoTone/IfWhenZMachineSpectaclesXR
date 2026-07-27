@@ -48,6 +48,54 @@ TODO
 - Snap Spectacles Lens: see v1 in this repository
 - WebXR : TODO (Best viewed on a Meta Quest 3)
 
+## Story Library
+
+The Lens ships a curated set of Z-Machine (Infocom-format) interactive fiction.
+Each title is validated end-to-end by `tszm/test/validate-library.js`, a 5-step
+harness (boot → intro → room detection → command menu → play) that runs every
+story through the same interpreter + scene-context path the Lens uses. The
+current library is **11/11 passing**.
+
+Only Z-code (`.z3`/`.z5`/`.z8`) stories run; Glulx, TADS, and Hugo games are not
+supported by this interpreter.
+
+| Story | Author | Year | Rating | About |
+|-------|--------|------|--------|-------|
+| Lost Pig | Admiral Jota | 2007 | G | Grunk the orc must find his lost pig. Funny, friendly, ideal for first-timers. |
+| Adventure | Crowther & Woods | 1976 | G | The original Colossal Cave — treasure, magic, and twisty little passages. |
+| The Dreamhold | Andrew Plotkin | 2004 | PG | Wake with no memory in a wizard's stronghold; the gentlest doorway into IF. |
+| Christminster | Gareth Rees | 1995 | PG | A literate Oxbridge-college mystery and a centuries-old conspiracy. |
+| Suveh Nux | David Fisher | 2007 | G | Locked in a vault, you discover words of power. A bite-sized magic puzzle box. |
+| 9:05 | Adam Cadre | 2000 | PG-13 | You overslept. Get up, get to work. Ten minutes long, with a famous twist. |
+| Delusions | C.E. Forman | 1996 | PG-13 | A mind-bending sci-fi mystery aboard a strange vessel. |
+| Spider and Web | Andrew Plotkin | 1998 | PG-13 | A spy thriller told in flashback under interrogation. |
+| Metamorphoses | Emily Short | 2000 | PG | A surreal manor of shifting matter you can shrink, grow, and transmute. |
+| Slouching Towards Bedlam | Foster & Ravipinto | 2003 | PG-13 | London, 1885: an asylum, a dead linguist, an idea that spreads. Steampunk, multiple endings. |
+| Mini-Zork I | Infocom | 1988 | PG | A compact tour of the Great Underground Empire. **Dev builds only** (see licensing). |
+
+Ratings are held to **G–PG-13**.
+
+### Licensing
+
+The story files are **third-party content with their own terms**, separate from
+this repository's code license — nothing here relicenses them. All were obtained
+from the [IF Archive](https://ifarchive.org) and are embedded byte-for-byte
+(unmodified). Full provenance and the pre-release checklist live in
+[`GAMES-LICENSES.md`](GAMES-LICENSES.md).
+
+- **Adventure** — original is public domain; Graham Nelson's Inform port is
+  freely distributable.
+- **Lost Pig, The Dreamhold, Christminster, Suveh Nux, 9:05, Delusions,
+  Spider and Web, Metamorphoses, Slouching Towards Bedlam** — freeware; each
+  author permits free distribution (via the IF Archive / their own terms).
+- **Mini-Zork I** — © Infocom/Activision. Historically given away but never
+  formally licensed. **Included for development only; it must be removed or
+  cleared before any public open-source release** (R4).
+
+Before shipping open-source (R4), each freeware title's own license statement
+should be captured verbatim from its in-game `ABOUT`/`CREDITS` text, and the
+bundled third-party UI/fonts credited — see `GAMES-LICENSES.md` for the list.
+
 ## Status
 
 - in design exploration
