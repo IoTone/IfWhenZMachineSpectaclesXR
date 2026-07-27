@@ -69,13 +69,74 @@ export class RoomIllustrator extends BaseScriptComponent {
     @input
     maxDescriptionChars: number = 220;
 
+    /**
+     * Persist generated images across sessions (PersistentStorageSystem). Off
+     * by default: a room is stable within a play session (in-memory cache) but
+     * gets fresh art next session — see randomizeSeed. Turn on for a fully
+     * consistent, mappable world (and to skip regeneration cost each session).
+     */
+    @input
+    persistAcrossSessions: boolean = false;
+
+    /**
+     * Use a random Imagen seed each generation so re-illustrated rooms (new
+     * session, or a cache miss) look different. With a fixed seed the same
+     * prompt reproduces near-identical art.
+     */
+    @input
+    randomizeSeed: boolean = true;
+
     private memCache: { [key: string]: Texture } = {};
+    /**
+     * Normalized description-sentence set each cached room's image was made
+     * from, so a re-entry can tell a genuine state change (a NEW sentence
+     * appears — e.g. the moved rug revealing a trap door) from a brief revisit
+     * (a subset of the original sentences). See descriptionChangedFor.
+     */
+    private descCache: { [key: string]: { [sentence: string]: boolean } } = {};
     private lastRoom: string | null = null;
     private generating: boolean = false;
     private authFailed: boolean = false;
     private store: GeneralDataStore | null = null;
     /** Room that changed while a generation was in flight; served next. */
     private pendingRoom: string | null = null;
+
+    /**
+     * Scene-loading UX hooks (SceneLoadingIndicator). Fired around the
+     * room-change illustration lifecycle:
+     *  - onSceneLoadStart : a new room was entered; old image unloaded.
+     *  - onImageShown     : an illustration is now on screen.
+     *  - onImageUnavailable: no illustration will appear (offline/auth/decode).
+     */
+    private loadingListener: {
+        onSceneLoadStart?: (room: string) => void;
+        onImageShown?: (room: string) => void;
+        onImageUnavailable?: (room: string) => void;
+    } | null = null;
+
+    public setLoadingListener(l: {
+        onSceneLoadStart?: (room: string) => void;
+        onImageShown?: (room: string) => void;
+        onImageUnavailable?: (room: string) => void;
+    }): void {
+        this.loadingListener = l;
+    }
+
+    private fireSceneLoadStart(room: string): void {
+        if (this.loadingListener && this.loadingListener.onSceneLoadStart) {
+            this.loadingListener.onSceneLoadStart(room);
+        }
+    }
+    private fireImageShown(room: string): void {
+        if (this.loadingListener && this.loadingListener.onImageShown) {
+            this.loadingListener.onImageShown(room);
+        }
+    }
+    private fireImageUnavailable(room: string): void {
+        if (this.loadingListener && this.loadingListener.onImageUnavailable) {
+            this.loadingListener.onImageUnavailable(room);
+        }
+    }
 
     /** Hide both display paths (no image yet / stale image must not show). */
     public hideImages(): void {
@@ -164,10 +225,20 @@ export class RoomIllustrator extends BaseScriptComponent {
         }
         const changed = ctx.room !== this.lastRoom;
         this.lastRoom = ctx.room;
-        // Illustrate on room change — and also retry each turn if the current
-        // room still has no image (earlier attempt failed or was skipped).
-        const uncached = !this.memCache[this.cacheKey(ctx.room)];
-        if (changed || (uncached && !this.generating && !this.authFailed)) {
+        if (changed) {
+            // Unload the previous room's image immediately so the loading
+            // dialog (SceneLoadingIndicator) shows in its place, then signal
+            // the start of the scene-loading sequence.
+            this.hideImages();
+            this.fireSceneLoadStart(ctx.room);
+        }
+        // Illustrate on room change; retry each turn if the current room still
+        // has no image; and re-illustrate a cached room whose description
+        // materially changed this turn (a state change, or an explicit "look").
+        const key = this.cacheKey(ctx.room);
+        const uncached = !this.memCache[key];
+        const descChanged = !uncached && !this.generating && this.descriptionChangedFor(key, ctx.room);
+        if (changed || descChanged || (uncached && !this.generating && !this.authFailed)) {
             this.illustrate(ctx.room);
         }
     }
@@ -176,22 +247,98 @@ export class RoomIllustrator extends BaseScriptComponent {
         return "ill-" + this.zmHost.gameKey + "-" + room.replace(/[^a-z0-9]+/gi, "_");
     }
 
+    /**
+     * The turn's printed text with the leading room-name header removed, or
+     * null if this turn did NOT lead with the room name — i.e. it wasn't a room
+     * description (movement/"look") but an action result like "Taken." (which
+     * we must ignore, or picking things up would re-illustrate). lastTurnText is
+     * already whitespace-collapsed, so the header is the room name at the front.
+     */
+    private descriptionBody(room: string): string | null {
+        const raw = (this.zmHost.lastTurnText || "").trim();
+        const roomName = room.trim();
+        if (roomName.length === 0 || raw.toLowerCase().indexOf(roomName.toLowerCase()) !== 0) {
+            return null;
+        }
+        return raw.slice(roomName.length).trim();
+    }
+
+    /** Normalized description sentences for this turn, or null if not a room
+     *  description (see descriptionBody). Stripping the room name keeps the
+     *  brief revisit ("<room> <object lines>") a clean subset of the first
+     *  visit's sentences. */
+    private descriptionSentences(room: string): string[] | null {
+        const body = this.descriptionBody(room);
+        if (body === null) {
+            return null;
+        }
+        const out: string[] = [];
+        for (const s of body.split(/[.!?]+\s+/)) {
+            const t = s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+            if (t.length > 0) {
+                out.push(t);
+            }
+        }
+        return out;
+    }
+
+    private snapshotDescription(room: string): { [sentence: string]: boolean } {
+        const set: { [sentence: string]: boolean } = {};
+        const sentences = this.descriptionSentences(room);
+        if (sentences) {
+            for (const s of sentences) {
+                set[s] = true;
+            }
+        }
+        return set;
+    }
+
+    /**
+     * True when a cached room re-prints a description this turn that introduces
+     * a sentence not present when we illustrated it — a genuine state change
+     * (rug moved to reveal a trap door, a room floods or is lit). A brief
+     * revisit (subset of the original sentences) and non-description turns
+     * ("Taken.") both return false, so they keep the cached image.
+     */
+    private descriptionChangedFor(key: string, room: string): boolean {
+        const sentences = this.descriptionSentences(room);
+        if (sentences === null) {
+            return false;
+        }
+        const baseline = this.descCache[key];
+        if (!baseline) {
+            return false;
+        }
+        for (const s of sentences) {
+            if (!baseline[s]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private illustrate(room: string): void {
         const key = this.cacheKey(room);
-        // Layer 1: in-memory
+        // Layer 1: in-memory — reuse unless the room's description changed.
         const cached = this.memCache[key];
-        if (cached) {
+        if (cached && !this.descriptionChangedFor(key, room)) {
             this.display(cached, room, "memory");
             return;
         }
-        // Layer 2: persistent base64
-        if (this.store) {
+        if (cached) {
+            print("RoomIllustrator: '" + room + "' description changed - re-illustrating");
+            this.generate(room, key);
+            return;
+        }
+        // Layer 2: persistent base64 (opt-in; off by default for per-session variety)
+        if (this.persistAcrossSessions && this.store) {
             const b64 = this.store.getString(key);
             if (b64 && b64.length > 0) {
                 Base64.decodeTextureAsync(
                     b64,
                     (texture: Texture) => {
                         this.memCache[key] = texture;
+                        this.descCache[key] = this.snapshotDescription(room);
                         this.display(texture, room, "persistent");
                     },
                     () => {
@@ -237,6 +384,7 @@ export class RoomIllustrator extends BaseScriptComponent {
 
     private generate(room: string, key: string): void {
         if (this.authFailed) {
+            this.fireImageUnavailable(room); // text-only; let the loading UX clear
             return; // token missing; stay text-only without spamming the API
         }
         if (this.generating) {
@@ -246,7 +394,11 @@ export class RoomIllustrator extends BaseScriptComponent {
         this.ensureCredentials();
         this.generating = true;
         const prompt = this.buildPrompt(room);
-        print('RoomIllustrator: generating "' + room + '"');
+        // Snapshot the description this image is being made from, so a later
+        // re-entry can tell whether the room has materially changed.
+        const descSnapshot = this.snapshotDescription(room);
+        const seed = this.randomizeSeed ? Math.floor(Math.random() * 1000000) : 0;
+        print('RoomIllustrator: generating "' + room + '" (seed ' + seed + ')');
         const request: GoogleGenAITypes.Imagen.ImagenRequest = {
             model: "imagen-3.0-generate-002",
             body: {
@@ -256,7 +408,7 @@ export class RoomIllustrator extends BaseScriptComponent {
                     aspectRatio: "4:3",
                     enhancePrompt: true,
                     language: "en",
-                    seed: 0,
+                    seed: seed,
                 },
                 instances: [{ prompt: prompt }],
             },
@@ -268,6 +420,7 @@ export class RoomIllustrator extends BaseScriptComponent {
                 const prediction = response.predictions && response.predictions[0];
                 if (!prediction || !prediction.bytesBase64Encoded) {
                     print("RoomIllustrator: empty Imagen response for " + room);
+                    this.fireImageUnavailable(room);
                     return;
                 }
                 const b64 = prediction.bytesBase64Encoded;
@@ -276,10 +429,12 @@ export class RoomIllustrator extends BaseScriptComponent {
                     b64,
                     (texture: Texture) => {
                         this.memCache[key] = texture;
+                        this.descCache[key] = descSnapshot;
                         this.display(texture, room, "generated");
                     },
                     () => {
                         print("RoomIllustrator: failed to decode generated image for " + room);
+                        this.fireImageUnavailable(room);
                     }
                 );
             })
@@ -293,6 +448,7 @@ export class RoomIllustrator extends BaseScriptComponent {
                 } else {
                     print("RoomIllustrator: generation failed for " + room + ": " + message);
                 }
+                this.fireImageUnavailable(room);
             });
     }
 
@@ -306,7 +462,7 @@ export class RoomIllustrator extends BaseScriptComponent {
     }
 
     private persist(key: string, b64: string): void {
-        if (!this.store) {
+        if (!this.persistAcrossSessions || !this.store) {
             return;
         }
         try {
@@ -335,5 +491,6 @@ export class RoomIllustrator extends BaseScriptComponent {
                 print("RoomIllustrator: spatialization unavailable (" + e + ")");
             }
         }
+        this.fireImageShown(room);
     }
 }

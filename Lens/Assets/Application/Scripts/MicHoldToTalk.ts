@@ -23,13 +23,14 @@ export class MicHoldToTalk extends BaseScriptComponent {
     interactable: Interactable;
 
     /**
-     * Where the mic parks at start (local to its parent rig): down-right of
-     * the command menu. Scale stays Inspector-owned. Tune this input in the
+     * Where the mic parks at start (local to its parent rig): clear to the
+     * right of the command menu so it can't overhang the buttons and trigger
+     * them by accident. Scale stays Inspector-owned. Tune this input in the
      * Inspector — component inputs persist reliably, unlike remote
      * transform edits.
      */
     @input
-    micPosition: vec3 = new vec3(18, -22, 18);
+    micPosition: vec3 = new vec3(30, -22, 18);
 
     /** Monospace font for the status label (so the ASCII spinner aligns). */
     @input

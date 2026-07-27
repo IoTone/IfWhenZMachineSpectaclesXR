@@ -38,7 +38,14 @@ const VERBS: { label: string; command: string; transitive: boolean }[] = [
     { label: "No", command: "no", transitive: false },
 ];
 
-const COMPASS = ["North", "South", "East", "West", "Up", "Down"];
+// Full 8-point compass + vertical + in/out. Labels lowercase to the Z-machine
+// direction words (all recognized by Infocom/Inform parsers, incl. Mini-Zork,
+// whose above-ground map genuinely uses NE/SE exits).
+const COMPASS = [
+    "North", "South", "East", "West",
+    "Northeast", "Northwest", "Southeast", "Southwest",
+    "Up", "Down", "In", "Out",
+];
 const MAX_NOUNS = 10;
 
 @component

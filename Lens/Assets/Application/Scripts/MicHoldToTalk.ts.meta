@@ -49,5 +49,5 @@
   InputLines:
     - // @input AssignableType voiceInput
     - // @input AssignableType_1 interactable
-    - "// @input vec3 micPosition = {18,-22,18}"
+    - "// @input vec3 micPosition = {30,-22,18}"
     - // @input Asset.Font statusFont

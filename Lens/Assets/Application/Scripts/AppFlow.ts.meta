@@ -30,8 +30,10 @@
     hideOnlyRigNames: false
     libraryMenu: false
     minSplashSeconds: false
+    narrator: false
     roomIllustrator: false
     splash: false
+    warmTimeoutSeconds: false
     zmHost: false
   ScriptTypesHidden:
     {}
@@ -46,7 +48,9 @@
       splash: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       libraryMenu: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
       roomIllustrator: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      narrator: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
       minSplashSeconds: !<float> 3.000000
+      warmTimeoutSeconds: !<float> 8.000000
       gameRigNames: "ScrollMenu,MicProp,Output,Status,SceneIllustration,SpatialFrame"
       hideOnlyRigNames: "SceneIllustration,SpatialFrame"
   ScriptTypes:
@@ -57,6 +61,8 @@
     - // @input AssignableType_1 splash
     - // @input AssignableType_2 libraryMenu
     - // @input AssignableType_3 roomIllustrator
+    - // @input AssignableType_4 narrator
     - // @input float minSplashSeconds = 10
+    - // @input float warmTimeoutSeconds = 8
     - '// @input string gameRigNames = "ScrollMenu,MicProp,Output,Status,RoomIllustrator"'
     - '// @input string hideOnlyRigNames = "SceneIllustration,SpatialFrame"'

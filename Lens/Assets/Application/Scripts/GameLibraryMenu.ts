@@ -46,6 +46,13 @@ export class GameLibraryMenu extends BaseScriptComponent {
     @input
     wrapColumn: number = 38;
 
+    /**
+     * Registry id of the story selected (detail card populated) when the
+     * library opens. Falls back to the first entry if the id isn't found.
+     */
+    @input
+    defaultGameId: string = "minizork";
+
     /** AppFlow assigns this; called with the selected game id on Play. */
     public onPlay: ((id: string) => void) | null = null;
 
@@ -112,8 +119,8 @@ export class GameLibraryMenu extends BaseScriptComponent {
             }
         });
         play.getSceneObject().getTransform().setLocalScale(new vec3(1.4, 1.4, 1));
-        this.select(GAMES[0]);
-        print("GameLibraryMenu: " + GAMES.length + " games listed");
+        this.select(getGame(this.defaultGameId) || GAMES[0]);
+        print("GameLibraryMenu: " + GAMES.length + " games listed (default " + this.selected.id + ")");
     }
 
     private select(g: GameEntry): void {

@@ -27,6 +27,7 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     buttonPrefab: false
+    defaultGameId: false
     detailText: false
     distance: false
     scrollMenu: false
@@ -49,6 +50,7 @@
       detailText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       distance: !<float> 55.000000
       wrapColumn: !<float> 38.000000
+      defaultGameId: minizork
   ScriptTypes:
     -
       {}
@@ -60,3 +62,4 @@
     - // @input Component.Text detailText
     - // @input float distance = 55
     - // @input float wrapColumn = 38
+    - '// @input string defaultGameId = "minizork"'

@@ -29,6 +29,8 @@
     credentials: false
     flatImage: false
     maxDescriptionChars: false
+    persistAcrossSessions: false
+    randomizeSeed: false
     spatialDepth: false
     spatialFrame: false
     spatialHeight: false
@@ -53,6 +55,8 @@
       spatialDepth: !<float> 15.000000
       stylePrompt: "Painterly storybook illustration for a classic text adventure, atmospheric, muted colors, no text, no letters, no watermark"
       maxDescriptionChars: !<float> 220.000000
+      persistAcrossSessions: false
+      randomizeSeed: true
   ScriptTypes:
     -
       {}
@@ -66,3 +70,5 @@
     - // @input float spatialDepth = 15
     - '// @input string stylePrompt = "Painterly storybook illustration for a classic text adventure, atmospheric, muted colors, no text, no letters, no watermark" {"widget":"text_area"}'
     - // @input float maxDescriptionChars = 220
+    - // @input bool persistAcrossSessions
+    - // @input bool randomizeSeed = true

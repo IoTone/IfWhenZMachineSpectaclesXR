@@ -1,6 +1,18 @@
 import { ZMachineHost } from "./ZMachineHost";
 
 /**
+ * Lifecycle of the TTS pipeline. The very first synthesize() call opens the
+ * Snap voice-service connection and spins up the model, which is slow; we do
+ * that during the splash (prewarm) so the first real narration is instant.
+ *  - "idle"    : nothing attempted yet.
+ *  - "warming" : a throwaway prewarm synthesize() is in flight.
+ *  - "warm"    : the pipeline is ready; narration will be prompt.
+ *  - "failed"  : prewarm errored (offline?); narration is still attempted
+ *                best-effort, but callers should not hard-block on "warm".
+ */
+export type WarmState = "idle" | "warming" | "warm" | "failed";
+
+/**
  * Narrates the game: each completed turn's text is synthesized with Lens
  * Studio's Text-To-Speech and played back (R8). Toggle with toggle() — wired
  * to the "Narrate" menu button.
@@ -8,6 +20,7 @@ import { ZMachineHost } from "./ZMachineHost";
  * Notes:
  *  - TTS synthesis needs connectivity (Snap voice service).
  *  - A new turn interrupts any narration still playing.
+ *  - prewarm() warms the pipeline behind the splash; see WarmState.
  */
 @component
 export class Narrator extends BaseScriptComponent {
@@ -39,6 +52,9 @@ export class Narrator extends BaseScriptComponent {
     private tts: TextToSpeechModule = require("LensStudio:TextToSpeechModule");
     private audio: AudioComponent;
     private narrating: boolean = true;
+    private _warmState: WarmState = "idle";
+    private warmListener: ((state: WarmState) => void) | null = null;
+    private narrationStartListener: (() => void) | null = null;
 
     onAwake() {
         this.narrating = this.autoNarrate;
@@ -63,6 +79,77 @@ export class Narrator extends BaseScriptComponent {
 
     public get isOn(): boolean {
         return this.narrating;
+    }
+
+    public get warmState(): WarmState {
+        return this._warmState;
+    }
+
+    public get isWarm(): boolean {
+        return this._warmState === "warm";
+    }
+
+    /**
+     * Subscribe to warm-state changes (VoiceStatusIndicator). Fires immediately
+     * with the current state so a late subscriber isn't left blank.
+     */
+    public setWarmStateListener(fn: (state: WarmState) => void): void {
+        this.warmListener = fn;
+        fn(this._warmState);
+    }
+
+    /**
+     * Subscribe to "narration playback started" — fires the moment a turn's
+     * synthesized audio begins playing. The scene-loading UX uses this to
+     * flip from "Loading scene" to "Loading image".
+     */
+    public setNarrationStartListener(fn: () => void): void {
+        this.narrationStartListener = fn;
+    }
+
+    private setWarmState(state: WarmState): void {
+        if (this._warmState === state) {
+            return;
+        }
+        this._warmState = state;
+        if (this.warmListener) {
+            this.warmListener(state);
+        }
+    }
+
+    /**
+     * Prewarm the TTS pipeline with a throwaway synthesize() so the first real
+     * narration doesn't pay the connection/model spin-up cost. The result audio
+     * is discarded (never played). The warm string must contain a real letter or
+     * digit — the voice service rejects punctuation-only input (error 13). Safe
+     * to call once; re-callable only after a prior failure. Never blocks — on
+     * error we go to "failed" and narration is
+     * still attempted best-effort later.
+     */
+    public prewarm(): void {
+        if (this._warmState === "warming" || this._warmState === "warm") {
+            return;
+        }
+        this.setWarmState("warming");
+        try {
+            const options = this.buildOptions();
+            this.tts.synthesize(
+                "ok",
+                options,
+                (_audioTrack: AudioTrackAsset) => {
+                    // Discard the audio — we only wanted the pipeline warm.
+                    this.setWarmState("warm");
+                    print("Narrator: TTS prewarm complete (voice ready)");
+                },
+                (error: any, description: string) => {
+                    this.setWarmState("failed");
+                    print("Narrator: TTS prewarm failed: " + error + " - " + description);
+                }
+            );
+        } catch (e) {
+            this.setWarmState("failed");
+            print("Narrator: TTS prewarm threw: " + e);
+        }
     }
 
     /**
@@ -120,25 +207,37 @@ export class Narrator extends BaseScriptComponent {
         }
     }
 
+    /** Build TTS options for the configured voice/pace (shared by speak + prewarm). */
+    private buildOptions(): TextToSpeech.Options {
+        // @ts-ignore - TextToSpeech is a Lens runtime global
+        const options = TextToSpeech.Options.create();
+        try {
+            // voicePace is not in the TS type defs but is honored at runtime
+            const opts = options as any;
+            opts.voiceName = this.voiceName;
+            opts.voicePace = this.voicePace;
+        } catch (e) {
+            // older runtime without these options - default voice
+        }
+        return options;
+    }
+
     private speak(text: string): void {
         this.stopPlayback();
         try {
-            // @ts-ignore - TextToSpeech is a Lens runtime global
-            const options = TextToSpeech.Options.create();
-            try {
-                // voicePace is not in the TS type defs but is honored at runtime
-                const opts = options as any;
-                opts.voiceName = this.voiceName;
-                opts.voicePace = this.voicePace;
-            } catch (e) {
-                // older runtime without these options - default voice
-            }
+            const options = this.buildOptions();
             this.tts.synthesize(
                 text,
                 options,
                 (audioTrack: AudioTrackAsset) => {
+                    // A successful real synthesis also proves the pipeline is warm
+                    // (covers the case where narration beats prewarm's callback).
+                    this.setWarmState("warm");
                     this.audio.audioTrack = audioTrack;
                     this.audio.play(1);
+                    if (this.narrationStartListener) {
+                        this.narrationStartListener();
+                    }
                 },
                 (error: any, description: string) => {
                     print("Narrator TTS error: " + error + " - " + description);

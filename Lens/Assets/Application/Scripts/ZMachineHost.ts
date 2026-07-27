@@ -64,6 +64,20 @@ export class ZMachineHost extends BaseScriptComponent {
     @input
     autoStart: boolean = true;
 
+    /**
+     * Auto-continue "[press any key to continue]" intro screens (read_char
+     * prompts that occur before the game's first command prompt). The
+     * buttonless UI can't supply a keypress, so a freshly loaded game would
+     * otherwise hang on its title/intro. Fires only during the intro — in-game
+     * menus and [MORE] paging keep responding to real button presses.
+     */
+    @input
+    autoAdvanceIntroKeys: boolean = true;
+
+    /** Seconds an intro key-prompt stays visible before it auto-continues. */
+    @input
+    autoAdvanceDelaySeconds: number = 1.5;
+
     private host: any = null;
     private tszm: any = null;
     private lines: string[] = [""];
@@ -75,6 +89,9 @@ export class ZMachineHost extends BaseScriptComponent {
     private latestTurnText: string = "";
     private offline: boolean = false;
     private lastStatusLine: string = "";
+    /** True once the game reaches its first command (line) prompt this session. */
+    private firstLinePromptSeen: boolean = false;
+    private introCharWait: number = 0;
     private demoCommands: string[] = [
         "open mailbox",
         "read leaflet",
@@ -98,6 +115,32 @@ export class ZMachineHost extends BaseScriptComponent {
                 this.beginSession();
             }
         });
+        const tick = this.createEvent("UpdateEvent");
+        tick.bind(() => this.autoAdvanceTick());
+    }
+
+    /**
+     * Auto-continue an intro "[press any key]" (read_char) the buttonless UI
+     * can't answer. Runs only until the game reaches its first command (line)
+     * prompt, so in-game menus and [MORE] paging still respond to real presses.
+     */
+    private autoAdvanceTick(): void {
+        if (!this.autoAdvanceIntroKeys || this.firstLinePromptSeen || !this.host) {
+            this.introCharWait = 0;
+            return;
+        }
+        const dev = this.host.device;
+        if (!dev || !dev.pendingChar || (dev.inputQueue && dev.inputQueue.length > 0)) {
+            this.introCharWait = 0;
+            return;
+        }
+        // @ts-ignore - getDeltaTime is a Lens runtime global
+        this.introCharWait += getDeltaTime();
+        if (this.introCharWait >= this.autoAdvanceDelaySeconds) {
+            this.introCharWait = 0;
+            print("ZMachineHost: auto-advancing intro key prompt");
+            dev.pushInput(""); // resolves the read_char with the continue/exit key
+        }
     }
 
     /** HUD indicator: prefix the status line while the network is down. */
@@ -282,6 +325,8 @@ export class ZMachineHost extends BaseScriptComponent {
         this.latestTurnText = "";
         this.lastContext = null;
         this.lastStatusLine = "";
+        this.firstLinePromptSeen = false;
+        this.introCharWait = 0;
         if (this.statusText) {
             this.statusText.text = "";
         }
@@ -370,6 +415,9 @@ export class ZMachineHost extends BaseScriptComponent {
                 this.appendText("\n[Interpreter error - see logger]\n");
             },
             onPrompt: (ctx: any) => {
+                // A line prompt means the intro is over: stop auto-advancing
+                // read_char so in-game menus/[MORE] respond to real presses.
+                this.firstLinePromptSeen = true;
                 if (ctx) {
                     this.lastContext = ctx;
                     for (const listener of this.sceneContextListeners) {

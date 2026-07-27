@@ -1,4 +1,5 @@
 import { GameLibraryMenu } from "./GameLibraryMenu";
+import { Narrator } from "./Narrator";
 import { RoomIllustrator } from "./RoomIllustrator";
 import { SplashTunnel } from "./SplashTunnel";
 import { ZMachineHost } from "./ZMachineHost";
@@ -31,9 +32,26 @@ export class AppFlow extends BaseScriptComponent {
     @allowUndefined
     roomIllustrator: RoomIllustrator;
 
+    /**
+     * Wired so the TTS pipeline is prewarmed behind the splash (the first
+     * synthesize() is slow); the splash won't advance while it is still
+     * "warming", capped by warmTimeoutSeconds so an offline device can't stall.
+     */
+    @input
+    @allowUndefined
+    narrator: Narrator;
+
     /** Minimum time the splash stays up (seconds). */
     @input
     minSplashSeconds: number = 10.0;
+
+    /**
+     * Hard cap (seconds) on how long past minSplashSeconds we hold the splash
+     * waiting for TTS to warm. Beyond this we advance regardless (offline/slow
+     * voice service must never strand the user on the splash).
+     */
+    @input
+    warmTimeoutSeconds: number = 8.0;
 
     /**
      * Names of game-UI scene objects hidden while the splash/menu is up
@@ -62,6 +80,8 @@ export class AppFlow extends BaseScriptComponent {
 
     private engineStarted: boolean = false;
     private rigs: SceneObject[] = [];
+    /** Seconds spent past minSplashSeconds waiting for TTS to warm. */
+    private warmWaited: number = 0;
 
     onAwake() {
         this.collectRigs();
@@ -82,6 +102,11 @@ export class AppFlow extends BaseScriptComponent {
             this.libraryMenu.getSceneObject().enabled = false;
         }
         this.createEvent("OnStartEvent").bind(() => {
+            // Warm the TTS pipeline behind the splash so the first narration is
+            // prompt. The advance gate below waits (bounded) for it to finish.
+            if (this.narrator) {
+                this.narrator.prewarm();
+            }
             if (this.libraryMenu) {
                 this.libraryMenu.onPlay = (id: string) => this.launchGame(id);
             } else {
@@ -96,6 +121,13 @@ export class AppFlow extends BaseScriptComponent {
 
             const advance = this.createEvent("DelayedCallbackEvent");
             advance.bind(() => {
+                // Hold the splash while TTS is still warming, up to the cap.
+                if (this.narrator && this.narrator.warmState === "warming" &&
+                    this.warmWaited < this.warmTimeoutSeconds) {
+                    this.warmWaited += 0.25;
+                    advance.reset(0.25);
+                    return;
+                }
                 if (this.libraryMenu) {
                     this.splash.flyThrough(() => {
                         this.libraryMenu.getSceneObject().enabled = true;

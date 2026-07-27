@@ -2,15 +2,15 @@
   ImportedAssetIds:
     .hidden/SkullAndFaceQuadrified_default3: !<reference> b52de1e8-0efc-453a-b298-d53fffcff104
     .hidden/white: !<reference> 2fd5d66f-1be0-4639-af38-9793d45989f2
-    0cfd659e6f37fb2b: !<reference> 3fa42031-f61b-4c54-bf24-67af2e3dde79
-    490890c5608e3d4b: !<reference> e99e2b63-d5e1-4001-88f4-7ec59622d87d
-    66780cf3a4dcb2b8: !<reference> b9cc96a5-6f23-466a-8160-03907cc87163
+    2028ca51e4a54211: !<reference> 7df8c1bd-c6b1-48db-95bf-a1c51e15e96a
+    7a0dd5cd69df73fa: !<reference> 82036a00-c20d-4993-8121-d363c7c9692e
     Animations/BaseLayer: !<reference> 117c949e-77f2-44c9-925c-e0d534d0022f
     Materials/SkullAndFaceQuadrified_default3: !<reference> dfef6061-6a78-49a9-add4-9ee3fadf6e80
     Materials/SkullAndFaceQuadrified_default3|SkullAndFaceQuadrified_default3|GraphPassInfo: !<reference> 6948aa92-a0e7-4fbe-bbd6-4b4e4411fcce
     Meshes/SkullAndFaceMesh: !<reference> 794a89fd-0b88-417b-89a7-bb82ef8cbde2
     Scene: !<reference> f3aca832-27e8-4b40-aae1-8f1a28147aaa
-    d56449042852f529: !<reference> a2d8b9fe-e742-47b0-9215-5b8245874dd4
+    f09b3f4c0be0ad80: !<reference> 4c14517f-d79a-4144-a752-54e7b162f807
+    f2251e6c117e51c7: !<reference> b33820fb-f7d1-40b1-bc5e-d3a06beaac15
   ImporterName: FbxImporter
   PrimaryAsset: !<reference> f3aca832-27e8-4b40-aae1-8f1a28147aaa
   PackageType: LegacyPackage
@@ -52,7 +52,7 @@
       jpg: Performance Compression
     Overrides:
       {}
-- !<SceneObject/3fa42031-f61b-4c54-40db-9850d1c22186>
+- !<SceneObject/4c14517f-d79a-4144-58ad-ab184e9d07f8>
   PrefabRemaps:
     []
   Name: SkullAndFaceMesh
@@ -66,13 +66,8 @@
   Children:
     []
   Components:
-    - !<own> e99e2b63-d5e1-4001-770b-813a69dd2782
-- !<ObjectPrefabAssetData/9adc5d16-10a0-41d6-aa6f-5c1d7703de28>
-  Prototype: !<ObjectOwner/161fbc0b-6f36-4352-86c3-f41c934d906b>
-    PackagePath: ""
-    objects:
-      - !<own> b9cc96a5-6f23-466a-7e9f-fc6f83378e9c
-- !<AnimationPlayer/a2d8b9fe-e742-47b0-6dea-a47dba78b22b>
+    - !<own> b33820fb-f7d1-40b1-43a1-2c5f941553ea
+- !<AnimationPlayer/7df8c1bd-c6b1-48db-6a40-5e3ae1ea1695>
   PrefabRemaps:
     []
   Name: component_1
@@ -93,7 +88,7 @@
       BlendMode: Default
       ScaleMode: Multiply
       PlaybackMode: Loop
-- !<SceneObject/b9cc96a5-6f23-466a-7e9f-fc6f83378e9c>
+- !<SceneObject/82036a00-c20d-4993-7ede-2c9c383696d1>
   PrefabRemaps:
     []
   Name: FaceMeshWithSkull_3DModel
@@ -105,10 +100,15 @@
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
-    - !<own> 3fa42031-f61b-4c54-40db-9850d1c22186
+    - !<own> 4c14517f-d79a-4144-58ad-ab184e9d07f8
   Components:
-    - !<own> a2d8b9fe-e742-47b0-6dea-a47dba78b22b
-- !<RenderMeshVisual/e99e2b63-d5e1-4001-770b-813a69dd2782>
+    - !<own> 7df8c1bd-c6b1-48db-6a40-5e3ae1ea1695
+- !<ObjectPrefabAssetData/9adc5d16-10a0-41d6-aa6f-5c1d7703de28>
+  Prototype: !<ObjectOwner/161fbc0b-6f36-4352-86c3-f41c934d906b>
+    PackagePath: ""
+    objects:
+      - !<own> 82036a00-c20d-4993-7ede-2c9c383696d1
+- !<RenderMeshVisual/b33820fb-f7d1-40b1-43a1-2c5f941553ea>
   PrefabRemaps:
     []
   Name: component_0

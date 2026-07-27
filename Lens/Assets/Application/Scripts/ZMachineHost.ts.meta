@@ -26,6 +26,8 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    autoAdvanceDelaySeconds: false
+    autoAdvanceIntroKeys: false
     autoDemo: false
     autoStart: false
     commandSound: false
@@ -55,6 +57,8 @@
       commandSound: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
       startGameId: minizork
       autoStart: true
+      autoAdvanceIntroKeys: true
+      autoAdvanceDelaySeconds: 1.500000
   ScriptTypes:
     -
       {}
@@ -69,3 +73,5 @@
     - // @input Asset.AudioTrackAsset commandSound
     - '// @input string startGameId = "minizork"'
     - // @input bool autoStart = true
+    - // @input bool autoAdvanceIntroKeys = true
+    - // @input float autoAdvanceDelaySeconds = 1.5
