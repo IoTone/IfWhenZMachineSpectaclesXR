@@ -33,6 +33,7 @@
     taglineText: false
     titleText: false
     tunnelText: false
+    versionText: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -45,6 +46,7 @@
     - tunnelText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       titleText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       taglineText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      versionText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       cols: !<float> 38.000000
       rows: !<float> 19.000000
       fps: !<float> 12.000000
@@ -56,6 +58,7 @@
     - // @input Component.Text tunnelText
     - // @input Component.Text titleText
     - // @input Component.Text taglineText
+    - // @input Component.Text versionText
     - // @input float cols = 38
     - // @input float rows = 19
     - // @input float fps = 12

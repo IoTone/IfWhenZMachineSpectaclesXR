@@ -2194,6 +2194,7 @@
   Enabled: true
   ScriptAsset: !<reference> b2ee9334-a911-4527-bd9d-ab539762c2a9
   ScriptInputsDefault:
+    versionText: true
     cols: true
     rows: true
     fps: true
@@ -2205,6 +2206,7 @@
       tunnelText: !<reference.Text> 7f33c447-accb-4136-ad39-61f16d60a04a
       titleText: !<reference.Text> f23f607a-4af5-4b0f-826b-5a20b54313c2
       taglineText: !<reference.Text> 939d30ed-9167-4dc2-957c-0809594169e5
+      versionText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       cols: !<float> 38.000000
       rows: !<float> 19.000000
       fps: !<float> 12.000000

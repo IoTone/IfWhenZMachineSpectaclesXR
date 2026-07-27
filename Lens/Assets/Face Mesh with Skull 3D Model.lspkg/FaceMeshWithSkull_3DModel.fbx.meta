@@ -52,7 +52,7 @@
       jpg: Performance Compression
     Overrides:
       {}
-- !<SceneObject/4c14517f-d79a-4144-58ad-ab184e9d07f8>
+- !<SceneObject/3fa42031-f61b-4c54-40db-9850d1c22186>
   PrefabRemaps:
     []
   Name: SkullAndFaceMesh
@@ -66,8 +66,13 @@
   Children:
     []
   Components:
-    - !<own> b33820fb-f7d1-40b1-43a1-2c5f941553ea
-- !<AnimationPlayer/7df8c1bd-c6b1-48db-6a40-5e3ae1ea1695>
+    - !<own> e99e2b63-d5e1-4001-770b-813a69dd2782
+- !<ObjectPrefabAssetData/9adc5d16-10a0-41d6-aa6f-5c1d7703de28>
+  Prototype: !<ObjectOwner/161fbc0b-6f36-4352-86c3-f41c934d906b>
+    PackagePath: ""
+    objects:
+      - !<own> b9cc96a5-6f23-466a-7e9f-fc6f83378e9c
+- !<AnimationPlayer/a2d8b9fe-e742-47b0-6dea-a47dba78b22b>
   PrefabRemaps:
     []
   Name: component_1
@@ -88,7 +93,7 @@
       BlendMode: Default
       ScaleMode: Multiply
       PlaybackMode: Loop
-- !<SceneObject/82036a00-c20d-4993-7ede-2c9c383696d1>
+- !<SceneObject/b9cc96a5-6f23-466a-7e9f-fc6f83378e9c>
   PrefabRemaps:
     []
   Name: FaceMeshWithSkull_3DModel
@@ -100,15 +105,10 @@
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
-    - !<own> 4c14517f-d79a-4144-58ad-ab184e9d07f8
+    - !<own> 3fa42031-f61b-4c54-40db-9850d1c22186
   Components:
-    - !<own> 7df8c1bd-c6b1-48db-6a40-5e3ae1ea1695
-- !<ObjectPrefabAssetData/9adc5d16-10a0-41d6-aa6f-5c1d7703de28>
-  Prototype: !<ObjectOwner/161fbc0b-6f36-4352-86c3-f41c934d906b>
-    PackagePath: ""
-    objects:
-      - !<own> 82036a00-c20d-4993-7ede-2c9c383696d1
-- !<RenderMeshVisual/b33820fb-f7d1-40b1-43a1-2c5f941553ea>
+    - !<own> a2d8b9fe-e742-47b0-6dea-a47dba78b22b
+- !<RenderMeshVisual/e99e2b63-d5e1-4001-770b-813a69dd2782>
   PrefabRemaps:
     []
   Name: component_0
