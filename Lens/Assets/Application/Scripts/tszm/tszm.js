@@ -8,9 +8,9 @@ var __commonJS = (cb, mod) => function __require() {
   }
 };
 
-// spectacles/shims.js
+// embedded/shims.js
 var require_shims = __commonJS({
-  "spectacles/shims.js"(exports2, module2) {
+  "embedded/shims.js"(exports2, module2) {
     "use strict";
     var B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     var B64_REV = (() => {
@@ -1465,12 +1465,12 @@ var require_memory = __commonJS({
   }
 });
 
-// spectacles/fs-stub.js
+// embedded/fs-stub.js
 var require_fs_stub = __commonJS({
-  "spectacles/fs-stub.js"(exports2, module2) {
+  "embedded/fs-stub.js"(exports2, module2) {
     "use strict";
     async function unavailable() {
-      throw new Error("fs/promises is not available in the Spectacles runtime");
+      throw new Error("fs/promises is not available in the embedded runtime");
     }
     module2.exports = {
       readFile: unavailable,
@@ -1963,7 +1963,7 @@ var require_io = __commonJS({
             console.log(`@save: saved ${saveData.length} bytes to localStorage key "${saveKey}"`);
           }
           ctx.branch?.(true);
-        } else if (vm.runtime === "spectacles") {
+        } else if (vm.runtime === "embedded") {
           const header = vm.getHeader();
           if (!header) {
             if (vm.trace) {
@@ -2072,7 +2072,7 @@ var require_io = __commonJS({
             }
             ctx.branch?.(false);
           }
-        } else if (vm.runtime === "spectacles") {
+        } else if (vm.runtime === "embedded") {
           const header = vm.getHeader();
           if (!header) {
             if (vm.trace) {
@@ -2140,7 +2140,7 @@ var require_io = __commonJS({
       const key = saveKeyFor(vm);
       if (!key)
         return false;
-      if (vm.runtime === "spectacles") {
+      if (vm.runtime === "embedded") {
         const store = typeof globalThis !== "undefined" && globalThis.__tszmStorage || null;
         if (!store)
           return false;
@@ -2162,7 +2162,7 @@ var require_io = __commonJS({
       const key = saveKeyFor(vm);
       if (!key)
         return null;
-      if (vm.runtime === "spectacles") {
+      if (vm.runtime === "embedded") {
         const store = typeof globalThis !== "undefined" && globalThis.__tszmStorage || null;
         if (!store)
           return null;
@@ -3073,11 +3073,11 @@ var require_ZMachine = __commonJS({
           if (typeof navigator !== "undefined" && navigator.product === "ReactNative")
             this.runtime = "react-native";
         }
-        if (this.gameBytes || typeof globalThis !== "undefined" && globalThis.__TSZM_SPECTACLES__) {
-          this.runtime = "spectacles";
+        if (this.gameBytes || typeof globalThis !== "undefined" && globalThis.__TSZM_EMBEDDED__) {
+          this.runtime = "embedded";
         }
       }
-      // Return a pristine copy of the original game image (Spectacles runtime).
+      // Return a pristine copy of the original game image (embedded runtime).
       // Prefers bytes handed to the constructor; falls back to a host-registered
       // global provider keyed by filePath (e.g. a bundled base64 game registry).
       async _readGameBytes() {
@@ -3088,7 +3088,7 @@ var require_ZMachine = __commonJS({
         if (typeof provider === "function") {
           return Buffer.from(await provider(this.filePath));
         }
-        throw new Error("Spectacles runtime: no game bytes provided (pass bytes to ZMachine or set globalThis.__tszmReadGameBytes)");
+        throw new Error("embedded runtime: no game bytes provided (pass bytes to ZMachine or set globalThis.__tszmReadGameBytes)");
       }
       async rleBuffer(input) {
         const outputBuffer = [];
@@ -3121,7 +3121,7 @@ var require_ZMachine = __commonJS({
           const arrayBuffer = await res.arrayBuffer();
           cleanMemory = Buffer.from(arrayBuffer);
         }
-        if (this.runtime === "spectacles") {
+        if (this.runtime === "embedded") {
           cleanMemory = await this._readGameBytes();
         }
         if (!cleanMemory || !this.memory || !this.header) {
@@ -3301,7 +3301,7 @@ Total callStackEntries: ${callStackEntries.length}
           const arrayBuffer = await res.arrayBuffer();
           cleanMemory = Buffer.from(arrayBuffer);
         }
-        if (this.runtime === "spectacles") {
+        if (this.runtime === "embedded") {
           cleanMemory = await this._readGameBytes();
         }
         if (!cleanMemory || !this.header) {
@@ -3491,7 +3491,7 @@ Total callStackEntries: ${callStackEntries.length}
           const arrayBuffer = await res.arrayBuffer();
           this.memory = Buffer.from(arrayBuffer);
         }
-        if (this.runtime === "spectacles") {
+        if (this.runtime === "embedded") {
           this.memory = await this._readGameBytes();
         }
         if (!this.memory) {
@@ -4056,9 +4056,9 @@ var require_core = __commonJS({
   }
 });
 
-// spectacles/host-core.js
+// embedded/host-core.js
 var require_host_core = __commonJS({
-  "spectacles/host-core.js"(exports2, module2) {
+  "embedded/host-core.js"(exports2, module2) {
     "use strict";
     function normalizeStatusLine(buf) {
       const segs = buf.split(/[ \t]{2,}|\n+/).map((s) => s.trim()).filter((s) => s.length > 0);
@@ -4299,7 +4299,7 @@ var require_host_core = __commonJS({
         return null;
       }
     }
-    var SpectaclesZDevice = class {
+    var EmbeddedZDevice = class {
       /**
        * opts:
        *   onText(str)    - clean game text (may be partial lines; includes \n)
@@ -4441,28 +4441,28 @@ var require_host_core = __commonJS({
         sceneContext: () => getSceneContext(zm, device.seenText, device.lastStatus)
       };
     }
-    module2.exports = { Vt100Filter, SpectaclesZDevice, runGame, getSceneContext };
+    module2.exports = { Vt100Filter, EmbeddedZDevice, runGame, getSceneContext };
   }
 });
 
-// spectacles/index.js
+// embedded/index.js
 var shims = require_shims();
 var g = shims.installShims();
-g.__TSZM_SPECTACLES__ = true;
+g.__TSZM_EMBEDDED__ = true;
 var { ZMachine } = require_core();
 var hostCore = require_host_core();
 module.exports = {
   ZMachine,
   shims,
-  SpectaclesZDevice: hostCore.SpectaclesZDevice,
+  EmbeddedZDevice: hostCore.EmbeddedZDevice,
   Vt100Filter: hostCore.Vt100Filter,
   /**
-   * One-call game start for the Lens host:
+   * One-call game start for an embedded host:
    *   const host = createZHost({ gameBytes, onText, onStatus, onEcho, onQuit, onError, yieldFn });
    *   host.device.pushInput("open mailbox");
    */
   createZHost(opts) {
-    const device = new hostCore.SpectaclesZDevice(opts);
+    const device = new hostCore.EmbeddedZDevice(opts);
     return hostCore.runGame({ ...opts, ZMachine, device });
   },
   /**

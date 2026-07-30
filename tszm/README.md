@@ -1,80 +1,91 @@
-# tszm — Spectacles build project
+# tszm — embedded runtime target
 
-This directory is the **source of truth** for the Z-Machine interpreter that ships
-in the Lens. The Lens asset
-`Lens/Assets/Application/Scripts/tszm/tszm.js` is a **build output**, not source.
+A fork of [`cshepherd/tszm`](https://github.com/cshepherd/tszm) (TypeScript
+Z-Machine / Inform interpreter) that adds an **embedded** runtime target: a way to
+run the interpreter in hosts that are neither a web browser nor Node — no
+`Buffer`, no `fs`, no `fetch`, no bundler-friendly `require()`. Snap Spectacles is
+the first consumer, but nothing here is Spectacles-specific; the platform glue
+lives in the host app, not in this repo.
 
-## Where this came from
+This directory is also the **source of truth** for the interpreter that ships in
+the IfWhen Z-Machine Lens: `Lens/Assets/Application/Scripts/tszm/tszm.js` in that
+project is a **build output** (`npm run deploy`), not source.
 
-The original repo only contained the minified esbuild bundle (`tszm.js`) plus its
-source map (`tszm.map`). The map embedded `sourcesContent` for all 21 modules, so the
-full readable source was recovered from it. This is **not** `bitblit/tszm` (a different,
-generator-based, weaker interpreter that merely shares the name); it is the more advanced
-ZMCDN-capable fork (browneverettlewis / "tscdn" lineage) the bundle was actually built from.
+## Provenance & license
+
+The `core/` interpreter was recovered from the shipped bundle's source map
+(`sourcesContent`, 21 modules), so it is present here as **compiled JS**, and the
+`host/` TypeScript (`ZConsole.ts`, `tszm.ts`, `ZMCDNInput.ts`) is byte-identical to
+`cshepherd/tszm`. This is **not** `bitblit/tszm` (a different, weaker interpreter
+that merely shares the name); it is the ZMCDN-capable lineage the bundle was built
+from. Upstream is BSD-style licensed (see `LICENSE`); that attribution is preserved
+and the `embedded/` layer added here is offered back under the same terms.
 
 ## Layout
 
-- `core/` — the recovered interpreter, as compiled JS. Treat as vendored upstream; keep
-  edits minimal and clearly marked. Node dependencies are localized:
+- `core/` — the recovered interpreter, as compiled JS. Treat as vendored upstream;
+  keep edits minimal and clearly marked. Node dependencies are localized:
   - `Buffer` — only in `core/ZMachine.js` and `core/opcodes/handlers/io.js`
-  - `fs/promises` / `fetch` — 4 load/save sites in `core/ZMachine.js`
-  - `process` — runtime detection + entry
-- `host/` — the host I/O + entry layer (TS). `ZConsole.ts` implements the
-  `ZMInputOutputDevice` interface (`readChar`, `readLine`, `writeChar`, `writeString`,
-  `close`, optional `rows`). This is the layer we replace for Spectacles.
+  - `fs/promises` / `fetch` — load/save sites in `core/ZMachine.js`
+  - `process` — runtime detection
+- `host/` — upstream's console host + entry (TS). `ZConsole.ts` implements the
+  `ZMInputOutputDevice` interface (`readChar`, `readLine`, `writeChar`,
+  `writeString`, `close`, optional `rows`).
+- `embedded/` — **the port.** Runtime shims + a platform-independent host that any
+  embedder can drive; contains **zero** platform-hardware API calls.
+  - `shims.js` — `Buffer` polyfill (Uint8Array subclass), base64 codec,
+    `crypto.randomUUID`. Installed as globals before the core loads.
+  - `fs-stub.js` — build-time alias for `fs/promises` (unreachable at runtime).
+  - `host-core.js` — `EmbeddedZDevice` (the I/O device), `Vt100Filter`
+    (splits game text from status/HUD, handles multi-line upper windows),
+    `getSceneContext`, and the frame-yielding `runGame` loop.
+  - `index.js` — esbuild entry: installs shims, forces the `embedded` runtime,
+    exports `{ ZMachine, shims, createZHost, setStorage, setGameLoader,
+    EmbeddedZDevice, Vt100Filter }`.
 
-## Port targets (Node -> Spectacles "specs24" runtime)
-
-1. Buffer polyfill (Uint8Array/DataView) + base64 codec + `crypto.randomUUID` shim.
-2. Add a `spectacles` branch to load()/saveData()/restoreFromSave()/@save/@restore.
-   - game files: bundled as base64 modules, decoded to Uint8Array (offline).
-   - saves/settings: `PersistentStorageSystem`.
-3. Replace `ZConsole` with a Spectacles host bridging the `readline` standin to a
-   scrolling text UI; ZMCDN http -> Remote Service Gateway; graphics -> AI image gen
-   + native Spatial Image (photo -> spatialized mesh).
+The core selects the `embedded` runtime when the host passes raw game bytes to the
+`ZMachine` constructor, or when `globalThis.__TSZM_EMBEDDED__` is set (the
+`embedded/index.js` entry sets it). Save/restore keys are game-id based, so the
+runtime label does not affect save compatibility.
 
 ## Build & test
 
 ```
 npm install          # once (esbuild only)
-npm run build        # -> dist/tszm.spectacles.js (+ sourcemap)
-npm run deploy       # build straight into Lens/Assets/Application/Scripts/tszm/tszm.js
+npm run build        # -> dist/tszm.embedded.js (+ sourcemap)
+npm run deploy       # build straight into a host's asset path (Lens tszm.js)
 npm run test:czech   # CZECH conformance suite against the source tree
 npm run test:bundle  # CZECH against the BUILT bundle, pure shim Buffer
+npm run test:library # build + validate the 11-game IF library end-to-end
 npm run test:minizork / test:advent   # scripted game walkthroughs
 ```
 
-The entry `spectacles/index.js` installs the shims as globals, forces the
-`spectacles` runtime, and exports `{ ZMachine, shims, setStorage, setGameLoader }`
-as a CommonJS module — the Lens host consumes it with `require()`. The only
-external left in the bundle is `fs/promises`, inside `runtime === 'node'` guards
-that never execute on device. Verified by loading and playing MiniZork inside a
-bare `vm` context with no Node globals.
+A host consumes the bundle with `require()` and one call:
 
-Status: CZECH 425 tests / 0 failures (source and bundle); MiniZork (v3) and
-Adventure (v5) complete scripted walkthroughs incl. save/restore round-trips.
+```js
+const tszm = require("./tszm.embedded.js");        // or the deployed tszm.js
+tszm.setStorage(myKeyValueStore);                  // backs @save/@restore
+const host = tszm.createZHost({ gameBytes, onText, onStatus, onQuit, onError, yieldFn });
+host.device.pushInput("open mailbox");
+```
 
-## Lens integration (Phase 3)
+The only external left in the bundle is `fs/promises`, inside `runtime === 'node'`
+guards that never execute in an embedded host. Verified by loading and playing
+MiniZork inside a bare `vm` context with no Node globals.
 
-- `spectacles/host-core.js` (bundled) — `SpectaclesZDevice` implements the
+Status: CZECH 425 tests / 0 failures (source and bundle); the 11-game IF library
+validates end-to-end; MiniZork (v3) and Adventure (v5) complete scripted
+walkthroughs incl. save/restore round-trips.
+
+## Example consumer: the Spectacles Lens
+
+- `embedded/host-core.js` (bundled) — `EmbeddedZDevice` implements the
   interpreter's I/O interface: promise-based `readLine` fed by `pushInput()`,
   VT100 filtering that splits output into clean game text (`onText`) and the
-  v3 status line (`onStatus`), plus a frame-yielding run loop (`createZHost`).
-  Verified in Node via `npm run test:host` and via the deployed Lens assets.
-- `tools/embed-game.js` — embeds a story file as a dependency-free CJS Lens
-  asset (`npm run embed:minizork` regenerates
-  `Lens/Assets/Application/Scripts/games/MiniZork.js`).
-- `Lens/Assets/Application/Scripts/ZMachineHost.ts` — the Lens component.
-
-### Scene setup (in Lens Studio)
-
-1. Add a SceneObject with a **Text** component for the transcript (enable
-   text wrapping; ~16 visible lines works well) and optionally a second Text
-   for the status line.
-2. Add **ZMachineHost** to any object; assign `outputText` / `statusText`.
-3. Wire input UI (SIK buttons, keyboard, voice) to `submitCommand(cmd)` —
-   or tick **autoDemo** to watch it play a MiniZork opening in Preview with
-   no input UI at all.
-
-Saves persist via `global.persistentStorageSystem` keyed by game
-release+serial, so each game gets its own save slot.
+  status/HUD (`onStatus`), plus a frame-yielding run loop (`createZHost`).
+  Verified in Node via `npm run test:host`.
+- `tools/embed-game.js` — embeds a story file as a dependency-free CJS asset.
+- In the Lens, `ZMachineHost.ts` is the thin platform wrapper: it forwards
+  `onText`/`onStatus` to Text components, backs `storage` with
+  `PersistentStorageSystem`, and calls `pushInput()` from UI events. All the
+  Snap-specific code lives there, not in this repo.

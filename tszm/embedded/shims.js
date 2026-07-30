@@ -1,10 +1,12 @@
 "use strict";
-// Phase 1 runtime shims for the Spectacles ("specs24") JS runtime.
+// Runtime shims for embedded JS runtimes (non-web/non-Node hosts, e.g. Snap
+// Spectacles' "specs24").
 //
 // The vendored interpreter in ../core was compiled for Node and relies on the
 // global `Buffer`, on `crypto.randomUUID`, and on base64 encode/decode. None of
-// those exist in the Spectacles Lens runtime. Requiring this module first (the
-// esbuild entry does) installs the missing globals so the core needs no edits.
+// those are guaranteed to exist in an embedded runtime. Requiring this module
+// first (the esbuild entry does) installs the missing globals so the core needs
+// no edits.
 //
 // Buffer is implemented as a subclass of Uint8Array so that indexing, `.length`,
 // iteration, and Uint8Array methods keep working; we add only the Node-specific

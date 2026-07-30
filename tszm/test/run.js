@@ -12,23 +12,23 @@ const fs = require("fs");
 const path = require("path");
 
 // Install shims BEFORE loading the core, then hide Node's Buffer from the test
-// by making sure the core sees the spectacles runtime.
+// by making sure the core sees the embedded runtime.
 //
-// TSZM_BUNDLE=1 tests the built artifact (dist/tszm.spectacles.js) instead of
+// TSZM_BUNDLE=1 tests the built artifact (dist/tszm.embedded.js) instead of
 // the source tree, and overrides the global Buffer with the shim so the bundle
-// runs purely on the polyfill — the closest Node can get to the Lens runtime.
+// runs purely on the polyfill — the closest Node can get to an embedded host.
 let shims;
 let ZMachine;
 if (process.env.TSZM_BUNDLE) {
-    const bundle = require("../dist/tszm.spectacles.js");
+    const bundle = require("../dist/tszm.embedded.js");
     shims = bundle.shims;
     ZMachine = bundle.ZMachine;
     globalThis.Buffer = shims.Buffer;
     console.error("[harness] testing BUILT BUNDLE with shim Buffer");
 }
 else {
-    shims = require("../spectacles/shims.js");
-    globalThis.__TSZM_SPECTACLES__ = true;
+    shims = require("../embedded/shims.js");
+    globalThis.__TSZM_EMBEDDED__ = true;
     ZMachine = require("../core/index.js").ZMachine;
 }
 
@@ -103,7 +103,7 @@ async function main() {
 
     let exitReason = "max-steps";
     await zm.load();
-    if (zm.runtime !== "spectacles") throw new Error(`expected spectacles runtime, got ${zm.runtime}`);
+    if (zm.runtime !== "embedded") throw new Error(`expected embedded runtime, got ${zm.runtime}`);
 
     let steps = 0;
     try {

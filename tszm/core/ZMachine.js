@@ -38,10 +38,10 @@ const decode_1 = require("./opcodes/decode");
 class ZMachine {
     constructor(filePath, inputOutputDevice) {
         this.filePath = filePath;
-        // Spectacles: the host may pass raw game bytes (Uint8Array / number[] /
-        // ArrayBuffer / Buffer) instead of a path. Keep a pristine copy so that
-        // saveData()/restoreFromSave() can recover the original ("clean") memory
-        // without a filesystem. See the `spectacles` branches below.
+        // Embedded hosts (e.g. Snap Spectacles) may pass raw game bytes (Uint8Array /
+        // number[] / ArrayBuffer / Buffer) instead of a path. Keep a pristine copy so
+        // that saveData()/restoreFromSave() can recover the original ("clean") memory
+        // without a filesystem. See the `embedded` branches below.
         this.gameBytes = null;
         if (filePath != null && typeof filePath !== 'string') {
             this.gameBytes = Buffer.from(filePath);
@@ -68,14 +68,15 @@ class ZMachine {
         if (this.runtime === 'unknown')
             if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative')
                 this.runtime = 'react-native';
-        // Spectacles ("specs24") runtime: selected when the host passed raw bytes,
-        // or forced via a global flag (set by the Lens entry before construction).
+        // Embedded runtime (non-web/non-Node hosts, e.g. Snap Spectacles): selected
+        // when the host passed raw bytes, or forced via a global flag (set by the
+        // embedded entry before construction).
         if (this.gameBytes ||
-            (typeof globalThis !== 'undefined' && globalThis.__TSZM_SPECTACLES__)) {
-            this.runtime = 'spectacles';
+            (typeof globalThis !== 'undefined' && globalThis.__TSZM_EMBEDDED__)) {
+            this.runtime = 'embedded';
         }
     }
-    // Return a pristine copy of the original game image (Spectacles runtime).
+    // Return a pristine copy of the original game image (embedded runtime).
     // Prefers bytes handed to the constructor; falls back to a host-registered
     // global provider keyed by filePath (e.g. a bundled base64 game registry).
     async _readGameBytes() {
@@ -86,7 +87,7 @@ class ZMachine {
         if (typeof provider === 'function') {
             return Buffer.from(await provider(this.filePath));
         }
-        throw new Error('Spectacles runtime: no game bytes provided (pass bytes to ZMachine or set globalThis.__tszmReadGameBytes)');
+        throw new Error('embedded runtime: no game bytes provided (pass bytes to ZMachine or set globalThis.__tszmReadGameBytes)');
     }
     async rleBuffer(input) {
         // Use an array to build output, then convert to Buffer at the end
@@ -127,7 +128,7 @@ class ZMachine {
             const arrayBuffer = await res.arrayBuffer();
             cleanMemory = Buffer.from(arrayBuffer);
         }
-        if (this.runtime === 'spectacles') {
+        if (this.runtime === 'embedded') {
             cleanMemory = await this._readGameBytes();
         }
         if (!cleanMemory || !this.memory || !this.header) {
@@ -350,7 +351,7 @@ class ZMachine {
             const arrayBuffer = await res.arrayBuffer();
             cleanMemory = Buffer.from(arrayBuffer);
         }
-        if (this.runtime === 'spectacles') {
+        if (this.runtime === 'embedded') {
             cleanMemory = await this._readGameBytes();
         }
         if (!cleanMemory || !this.header) {
@@ -616,7 +617,7 @@ class ZMachine {
             const arrayBuffer = await res.arrayBuffer();
             this.memory = Buffer.from(arrayBuffer);
         }
-        if (this.runtime === 'spectacles') {
+        if (this.runtime === 'embedded') {
             this.memory = await this._readGameBytes();
         }
         if (!this.memory) {

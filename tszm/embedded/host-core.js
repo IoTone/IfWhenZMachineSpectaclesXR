@@ -1,16 +1,17 @@
 "use strict";
-// Platform-independent host layer for running the Z-Machine on Spectacles.
+// Platform-independent host layer for running the Z-Machine in an embedded host
+// (non-web/non-Node runtimes; Snap Spectacles is the first consumer).
 //
-// This is the testable half of the Lens integration: it implements the
+// This is the testable half of any embedder's integration: it implements the
 // ZMInputOutputDevice interface the interpreter core expects, translates the
 // core's terminal-oriented output (VT100 escape sequences, status-line
-// repaints) into clean text callbacks a Text component can render, and queues
-// user input into the promise-based readLine the core awaits.
+// repaints) into clean text callbacks a UI (e.g. a Text component) can render,
+// and queues user input into the promise-based readLine the core awaits.
 //
-// The Lens component (ZMachineHost.ts) is a thin wrapper: it forwards
-// onText/onStatus to Text components, backs `storage` with
-// PersistentStorageSystem, and calls pushInput() from UI events. Everything
-// here runs (and is verified) in plain Node.
+// A platform component (e.g. the Lens's ZMachineHost.ts) is a thin wrapper: it
+// forwards onText/onStatus to UI, backs `storage` with the platform's key/value
+// store, and calls pushInput() from UI events. Everything here runs (and is
+// verified) in plain Node.
 
 // ---------------------------------------------------------------------------
 // VT100 stream filter
@@ -364,7 +365,7 @@ function getSceneContext(zm, visibleText, statusLine) {
 // ---------------------------------------------------------------------------
 // Device
 // ---------------------------------------------------------------------------
-class SpectaclesZDevice {
+class EmbeddedZDevice {
     /**
      * opts:
      *   onText(str)    - clean game text (may be partial lines; includes \n)
@@ -481,12 +482,12 @@ class SpectaclesZDevice {
 // Run loop
 // ---------------------------------------------------------------------------
 /**
- * Create and start a Z-Machine game against a SpectaclesZDevice.
+ * Create and start a Z-Machine game against an EmbeddedZDevice.
  *
  * opts:
  *   ZMachine    - the interpreter class (from the bundle entry)
  *   gameBytes   - Uint8Array/Buffer of the story file
- *   device      - a SpectaclesZDevice (or compatible)
+ *   device      - an EmbeddedZDevice (or compatible)
  *   onQuit()    - the game executed @quit
  *   onError(e)  - fatal interpreter error
  *   yieldEvery  - instructions between yields (default 20000)
@@ -548,4 +549,4 @@ function runGame(opts) {
     };
 }
 
-module.exports = { Vt100Filter, SpectaclesZDevice, runGame, getSceneContext };
+module.exports = { Vt100Filter, EmbeddedZDevice, runGame, getSceneContext };

@@ -1,13 +1,13 @@
 "use strict";
-// Verifies the Spectacles host layer (host-core via the BUILT bundle) exactly
-// the way the Lens will drive it: pushInput() from "UI events", clean text and
-// status-line callbacks, storage-backed save/restore. Node's Buffer is
-// replaced with the shim so the whole stack runs on the polyfill.
+// Verifies the embedded host layer (host-core via the BUILT bundle) exactly the
+// way a platform host (e.g. the Lens) drives it: pushInput() from "UI events",
+// clean text and status-line callbacks, storage-backed save/restore. Node's
+// Buffer is replaced with the shim so the whole stack runs on the polyfill.
 //
 // Usage: node run-host.js
 
 const fs = require("fs");
-const bundle = require("../dist/tszm.spectacles.js");
+const bundle = require("../dist/tszm.embedded.js");
 globalThis.Buffer = bundle.shims.Buffer;
 
 const mem = {};

@@ -1,11 +1,11 @@
 {
-  "name": "tszm-spectacles",
+  "name": "tszm-embedded",
   "private": true,
   "version": "0.1.0",
-  "description": "Z-Machine interpreter (tszm fork) built for the Snap Spectacles Lens runtime",
+  "description": "Z-Machine interpreter (tszm fork) with an embedded runtime target for non-web/non-Node hosts (Snap Spectacles is the first consumer)",
   "scripts": {
-    "build": "esbuild spectacles/index.js --bundle --format=cjs --platform=neutral --target=es2020 --alias:fs/promises=./spectacles/fs-stub.js --sourcemap --outfile=dist/tszm.spectacles.js",
-    "deploy": "esbuild spectacles/index.js --bundle --format=cjs --platform=neutral --target=es2020 --alias:fs/promises=./spectacles/fs-stub.js --outfile='../Lens/Assets/Application/Scripts/tszm/tszm.js'",
+    "build": "esbuild embedded/index.js --bundle --format=cjs --platform=neutral --target=es2020 --alias:fs/promises=./embedded/fs-stub.js --sourcemap --outfile=dist/tszm.embedded.js",
+    "deploy": "esbuild embedded/index.js --bundle --format=cjs --platform=neutral --target=es2020 --alias:fs/promises=./embedded/fs-stub.js --outfile='../Lens/Assets/Application/Scripts/tszm/tszm.js'",
     "test:czech": "cd test && node run.js games/czech.z5",
     "test:minizork": "cd test && node run.js games/minizork.z3 minizork-walk.txt",
     "test:advent": "cd test && node run.js games/advent.z5 advent-walk.txt",

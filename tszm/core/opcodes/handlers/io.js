@@ -585,7 +585,7 @@ async function h_save(vm, _operands, ctx) {
             }
             ctx.branch?.(true);
         }
-        else if (vm.runtime === 'spectacles') {
+        else if (vm.runtime === 'embedded') {
             // Spectacles: persist via host-provided key/value store (backed by
             // PersistentStorageSystem). Same base64 + game-id key as browser.
             const header = vm.getHeader();
@@ -718,7 +718,7 @@ async function h_restore(vm, _operands, ctx) {
                 ctx.branch?.(false);
             }
         }
-        else if (vm.runtime === 'spectacles') {
+        else if (vm.runtime === 'embedded') {
             // Spectacles: load via host-provided key/value store (PersistentStorageSystem).
             const header = vm.getHeader();
             if (!header) {
@@ -797,7 +797,7 @@ async function persistSaveData(vm, saveData) {
     const key = saveKeyFor(vm);
     if (!key)
         return false;
-    if (vm.runtime === 'spectacles') {
+    if (vm.runtime === 'embedded') {
         const store = (typeof globalThis !== 'undefined' && globalThis.__tszmStorage) || null;
         if (!store)
             return false;
@@ -819,7 +819,7 @@ async function loadSaveData(vm) {
     const key = saveKeyFor(vm);
     if (!key)
         return null;
-    if (vm.runtime === 'spectacles') {
+    if (vm.runtime === 'embedded') {
         const store = (typeof globalThis !== 'undefined' && globalThis.__tszmStorage) || null;
         if (!store)
             return null;

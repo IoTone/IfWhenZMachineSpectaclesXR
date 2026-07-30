@@ -19,7 +19,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const bundle = require("../dist/tszm.spectacles.js");
+const bundle = require("../dist/tszm.embedded.js");
 globalThis.Buffer = bundle.shims.Buffer;
 
 // Each game gets a fresh in-memory storage so saves never collide.
