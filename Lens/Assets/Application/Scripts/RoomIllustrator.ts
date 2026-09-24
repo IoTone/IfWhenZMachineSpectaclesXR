@@ -1,10 +1,28 @@
-import { Imagen } from "RemoteServiceGateway.lspkg/HostedExternal/Imagen";
 import { GoogleGenAITypes } from "RemoteServiceGateway.lspkg/HostedExternal/GoogleGenAITypes";
 import {
     RemoteServiceGatewayCredentials,
     AvaliableApiTypes,
 } from "RemoteServiceGateway.lspkg/RemoteServiceGatewayCredentials";
 import { ZMachineHost } from "./ZMachineHost";
+
+const RSM_IMAGEN = requireAsset(
+    "../../RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/Imagen_Sync.remoteServiceModule"
+) as RemoteServiceModule;
+const RSM_GEMINI = requireAsset(
+    "../../RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/Gemini_Sync.remoteServiceModule"
+) as RemoteServiceModule;
+
+/**
+ * Image models tried in order. Google retires model names without notice
+ * (imagen-3.0-generate-002 now 404s through the RSG proxy), so a NOT_FOUND
+ * falls through to the next entry; the first one that works is remembered
+ * for the session. "gemini:" entries use Gemini's native image output.
+ */
+const IMAGE_MODELS: string[] = [
+    "imagen-4.0-fast-generate-001",
+    "imagen-4.0-generate-001",
+    "gemini:gemini-2.5-flash-image",
+];
 
 /**
  * Illustrates the current game room (R5/R10 — hybrid pipeline):
@@ -361,12 +379,143 @@ export class RoomIllustrator extends BaseScriptComponent {
         return this.stylePrompt + ". Scene: " + room + ". " + description;
     }
 
-    /** Ensure the module instance Imagen imports actually holds the tokens. */
-    private ensureCredentials(): void {
-        const current = RemoteServiceGatewayCredentials.getApiToken(AvaliableApiTypes.Google) || "";
-        if (current.length > 0 && current.indexOf("[INSERT") === -1) {
-            return; // already populated
+    /** The Google token straight from the credentials component's inputs. */
+    private googleToken(): string {
+        const fromComponent = this.credentials ? (this.credentials as any).googleToken : null;
+        if (typeof fromComponent === "string" && fromComponent.length > 0 && fromComponent.indexOf("[INSERT") === -1) {
+            return fromComponent;
         }
+        return RemoteServiceGatewayCredentials.getApiToken(AvaliableApiTypes.Google) || "";
+    }
+
+    /** Index into IMAGE_MODELS of the model to try first (last one that worked). */
+    private modelIndex: number = 0;
+
+    /**
+     * Base64 image for the prompt, walking IMAGE_MODELS from index i and
+     * skipping models the proxy reports as NOT_FOUND. Other errors (auth,
+     * network, quota) propagate unchanged.
+     */
+    private generateWithFallback(prompt: string, seed: number, i: number): Promise<string | null> {
+        const model = IMAGE_MODELS[i];
+        const attempt =
+            model.indexOf("gemini:") === 0
+                ? this.requestGeminiImage(model.slice("gemini:".length), prompt)
+                : this.requestImagen({
+                      model: model,
+                      body: {
+                          parameters: {
+                              sampleCount: 1,
+                              addWatermark: false,
+                              aspectRatio: "4:3",
+                              enhancePrompt: true,
+                              seed: seed,
+                          },
+                          instances: [{ prompt: prompt }],
+                      },
+                  }).then((response) => {
+                      const prediction = response.predictions && response.predictions[0];
+                      return prediction && prediction.bytesBase64Encoded ? prediction.bytesBase64Encoded : null;
+                  });
+        return attempt.then(
+            (b64) => {
+                if (this.modelIndex !== i) {
+                    print("RoomIllustrator: using image model " + model);
+                    this.modelIndex = i;
+                }
+                return b64;
+            },
+            (error) => {
+                const message = String(error);
+                if (message.indexOf("NOT_FOUND") !== -1 && i + 1 < IMAGE_MODELS.length) {
+                    print("RoomIllustrator: image model " + model + " unavailable, trying " + IMAGE_MODELS[i + 1]);
+                    return this.generateWithFallback(prompt, seed, i + 1);
+                }
+                throw error;
+            }
+        );
+    }
+
+    /** Gemini native image generation (responseModalities IMAGE) via RSG. */
+    private requestGeminiImage(model: string, prompt: string): Promise<string | null> {
+        return new Promise((resolve, reject) => {
+            const apiToken = this.googleToken();
+            if (apiToken.length === 0) {
+                reject(new Error("Gemini API token not configured"));
+                return;
+            }
+            const apiRequest = RemoteApiRequest.create();
+            apiRequest.endpoint = "models";
+            apiRequest.parameters = { "api-token": apiToken, model: model, type: "generateContent" };
+            apiRequest.body = JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: prompt + ". Landscape 4:3 composition." }] }],
+                generationConfig: { responseModalities: ["IMAGE"] },
+            });
+            RSM_GEMINI.performApiRequest(apiRequest, (response) => {
+                if (response.statusCode !== 1) {
+                    reject(new Error(response.body));
+                    return;
+                }
+                try {
+                    const json = JSON.parse(response.body);
+                    const parts =
+                        (json.candidates && json.candidates[0] && json.candidates[0].content &&
+                            json.candidates[0].content.parts) || [];
+                    for (const part of parts) {
+                        const inline = part.inlineData || part.inline_data;
+                        if (inline && inline.data) {
+                            resolve(inline.data);
+                            return;
+                        }
+                    }
+                    resolve(null);
+                } catch (e) {
+                    reject(new Error("Failed to parse Gemini image response: " + e));
+                }
+            });
+        });
+    }
+
+    /**
+     * Imagen request via the RSG remote service module. Mirrors the package's
+     * Imagen.generateImage, but takes the token from googleToken() instead of
+     * the package's static store: RemoteServiceGateway.lspkg exists in both
+     * Assets/ and Packages/, and which copy's static store the credentials
+     * component fills depends on load order.
+     */
+    private requestImagen(
+        request: GoogleGenAITypes.Imagen.ImagenRequest
+    ): Promise<GoogleGenAITypes.Imagen.ImagenResponse> {
+        return new Promise((resolve, reject) => {
+            const apiToken = this.googleToken();
+            if (apiToken.length === 0) {
+                reject(new Error("Imagen API token not configured"));
+                return;
+            }
+            const apiRequest = RemoteApiRequest.create();
+            apiRequest.endpoint = "imagen";
+            apiRequest.parameters = { "api-token": apiToken, model: request.model };
+            apiRequest.body = JSON.stringify(request.body);
+            RSM_IMAGEN.performApiRequest(apiRequest, (response) => {
+                if (response.statusCode !== 1) {
+                    reject(new Error(response.body));
+                    return;
+                }
+                try {
+                    resolve(JSON.parse(response.body) as GoogleGenAITypes.Imagen.ImagenResponse);
+                } catch (e) {
+                    reject(new Error("Failed to parse Imagen API response: " + e));
+                }
+            });
+        });
+    }
+
+    /**
+     * Best-effort sync of the component's tokens into the static store this
+     * module sees (the Spatial Image service reads it too). Always runs: the
+     * store being populated here says nothing about the other package copy.
+     */
+    private ensureCredentials(): void {
         if (!this.credentials) {
             return;
         }
@@ -399,31 +548,15 @@ export class RoomIllustrator extends BaseScriptComponent {
         const descSnapshot = this.snapshotDescription(room);
         const seed = this.randomizeSeed ? Math.floor(Math.random() * 1000000) : 0;
         print('RoomIllustrator: generating "' + room + '" (seed ' + seed + ')');
-        const request: GoogleGenAITypes.Imagen.ImagenRequest = {
-            model: "imagen-3.0-generate-002",
-            body: {
-                parameters: {
-                    sampleCount: 1,
-                    addWatermark: false,
-                    aspectRatio: "4:3",
-                    enhancePrompt: true,
-                    language: "en",
-                    seed: seed,
-                },
-                instances: [{ prompt: prompt }],
-            },
-        };
-        Imagen.generateImage(request)
-            .then((response) => {
+        this.generateWithFallback(prompt, seed, this.modelIndex)
+            .then((b64) => {
                 this.generating = false;
                 this.drainPending();
-                const prediction = response.predictions && response.predictions[0];
-                if (!prediction || !prediction.bytesBase64Encoded) {
-                    print("RoomIllustrator: empty Imagen response for " + room);
+                if (!b64) {
+                    print("RoomIllustrator: empty image response for " + room);
                     this.fireImageUnavailable(room);
                     return;
                 }
-                const b64 = prediction.bytesBase64Encoded;
                 this.persist(key, b64);
                 Base64.decodeTextureAsync(
                     b64,

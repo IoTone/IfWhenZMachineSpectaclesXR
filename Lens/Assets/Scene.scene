@@ -909,6 +909,8 @@
   ScriptAsset: !<reference> 37976aca-6847-44c8-88d9-5edb6aadbbf2
   ScriptInputsDefault:
     openAIToken: true
+    googleToken: true
+    snapToken: true
     enableLogging: true
     enableLoggingLifecycle: true
   ScriptTypesDefault:
@@ -916,8 +918,8 @@
   ScriptInputs:
     "":
       openAIToken: "[INSERT OPENAI TOKEN HERE]"
-      googleToken: 3db45e26-bfc1-4de6-8b14-fcba89247e5c
-      snapToken: 4f302a04-8f35-491e-970f-5b4d24e7ac9f
+      googleToken: "[INSERT GOOGLE TOKEN HERE]"
+      snapToken: "[INSERT SNAP TOKEN HERE]"
       enableLogging: false
       enableLoggingLifecycle: false
   ScriptTypes:
