@@ -14,6 +14,10 @@ import { UxSettings } from "./UxSettings";
  *   SPATIAL IMAGE · 3D   the Spatial Image depth mesh loaded
  *   TEXT ONLY            no image is coming (offline / no image returned)
  *
+ * When the image lands it PAINTS IN (step 3B): rows reveal top-down behind a
+ * 4x4 ordered-dither edge, at sketch resolution, with the wireframe left
+ * faintly over it; then the full-res flat image takes over.
+ *
  * The sketch is drawn on the CPU into a small ProceduralTexture (no shader),
  * shown on this object's Image in the illustration slot. A mono caption types
  * the room's first sentence under it.
@@ -49,6 +53,13 @@ export class RoomViewport extends BaseScriptComponent {
     @input
     holdSeconds: number = 1.2;
 
+    /** Paint-in duration for a freshly generated image, and for a cached one. */
+    @input
+    paintSeconds: number = 1.0;
+
+    @input
+    cachedPaintSeconds: number = 0.35;
+
     private static readonly TW = 256;
     private static readonly TH = 160;
     private static readonly FPS = 15;
@@ -66,6 +77,14 @@ export class RoomViewport extends BaseScriptComponent {
     private lastCtx: any = null;
     private caption: string = "";
     private captionShown: number = 0;
+    // paint-in state
+    private art: Uint8Array = new Uint8Array(RoomViewport.TW * RoomViewport.TH * 4);
+    private wireMask: Uint8Array = new Uint8Array(RoomViewport.TW * RoomViewport.TH);
+    private painting: boolean = false;
+    private paintT: number = 0;
+    private paintDur: number = 1;
+    private roomT: number = 0;
+    private static readonly BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 
     onAwake() {
         this.image = this.getSceneObject().getComponent("Component.Image") as Image;
@@ -88,6 +107,11 @@ export class RoomViewport extends BaseScriptComponent {
             this.image.mainPass.baseTex = tex;
             this.image.enabled = false;
         }
+        if (this.illustrator && this.illustrator.flatImage) {
+            // Crop to the slot box (Fill let square images overflow it), so
+            // the paint-in and the final image frame identically.
+            this.illustrator.flatImage.stretchMode = StretchMode.FillAndCut;
+        }
         this.placeOverSlot();
         this.styleText(this.labelText, 26, Theme.cyan);
         this.styleText(this.captionText, 20, Theme.phosphor);
@@ -96,6 +120,7 @@ export class RoomViewport extends BaseScriptComponent {
             this.zmHost.addSceneContextListener((ctx: any) => {
                 this.lastCtx = ctx;
                 if (!ctx) {
+                    this.endPaint(false);
                     this.stopSketch();
                     this.setLabel("");
                     this.setCaption("");
@@ -105,7 +130,7 @@ export class RoomViewport extends BaseScriptComponent {
         if (this.illustrator) {
             this.illustrator.setLoadingListener({
                 onSceneLoadStart: (room: string) => this.beginRoom(room),
-                onImageShown: () => this.stage("AI ART", Theme.amber, false),
+                onImageShown: (_room: string, texture?: Texture) => this.paint(texture),
                 onSpatialReady: () => this.stage("SPATIAL IMAGE · 3D", Theme.cyan, false),
                 onImageUnavailable: () => this.stage("TEXT ONLY", Theme.pink, true),
             });
@@ -185,7 +210,9 @@ export class RoomViewport extends BaseScriptComponent {
 
     // ------------------------------------------------------------ stages
     private beginRoom(room: string): void {
+        this.endPaint(false);
         this.room = room;
+        this.roomT = 0;
         this.placeOverSlot(); // the rig may have been re-parked since start
         this.buildSketch(room, this.lastCtx);
         this.loop = 0;
@@ -210,6 +237,137 @@ export class RoomViewport extends BaseScriptComponent {
             this.render(1.0, 0);
         } else {
             this.stopSketch();
+        }
+    }
+
+    /** The image arrived: paint it in over the sketch (or just show it). */
+    private paint(texture?: Texture): void {
+        this.setLabel("AI ART", Theme.amber);
+        if (!texture || UxSettings.effectsReduced || !this.provider || !this.readArt(texture)) {
+            this.stopSketch();
+            return;
+        }
+        // wire mask = the finished sketch, to leave faintly over the image
+        this.render(1.0, this.loop);
+        for (let i = 0; i < this.wireMask.length; i++) {
+            this.wireMask[i] = this.pixels[i * 4 + 3] > 0 ? 1 : 0;
+        }
+        // Hide the full-res flat image while we paint (the illustrator enabled
+        // it in this same frame, so it never flashes).
+        this.setFlatVisible(false);
+        this.sketching = false;
+        this.painting = true;
+        this.paintT = 0;
+        // a cached room arrives almost instantly: short paint
+        this.paintDur = this.roomT < 0.6 ? this.cachedPaintSeconds : this.paintSeconds;
+        if (this.image) {
+            this.image.enabled = true;
+        }
+        this.frameClock = 1;
+    }
+
+    /** Sample the image into `art` at sketch resolution, FillAndCut-cropped. */
+    private readArt(texture: Texture): boolean {
+        try {
+            const w = texture.getWidth();
+            const h = texture.getHeight();
+            const readable = ProceduralTextureProvider.createFromTexture(texture);
+            const src = new Uint8Array(w * h * 4);
+            (readable.control as ProceduralTextureProvider).getPixels(0, 0, w, h, src);
+            const TW = RoomViewport.TW;
+            const TH = RoomViewport.TH;
+            // centre crop to the viewport aspect
+            let cw = w, ch = h;
+            if (w / h > TW / TH) {
+                cw = h * (TW / TH);
+            } else {
+                ch = w * (TH / TW);
+            }
+            const x0 = (w - cw) / 2, y0 = (h - ch) / 2;
+            for (let ty = 0; ty < TH; ty++) {
+                const sy = Math.min(h - 1, Math.floor(y0 + ((ty + 0.5) * ch) / TH));
+                for (let tx = 0; tx < TW; tx++) {
+                    const sx = Math.min(w - 1, Math.floor(x0 + ((tx + 0.5) * cw) / TW));
+                    const si = (sy * w + sx) * 4, di = (ty * TW + tx) * 4;
+                    this.art[di] = src[si];
+                    this.art[di + 1] = src[si + 1];
+                    this.art[di + 2] = src[si + 2];
+                    this.art[di + 3] = 255;
+                }
+            }
+            return true;
+        } catch (e) {
+            print("RoomViewport: can't read image pixels, skipping paint-in (" + e + ")");
+            return false;
+        }
+    }
+
+    /** Composite one paint frame: dithered reveal edge, wire ghost on top. */
+    private renderPaint(p: number): void {
+        const TW = RoomViewport.TW;
+        const TH = RoomViewport.TH;
+        const c = Theme.cyan;
+        const cr = c.r * 255, cg = c.g * 255, cb = c.b * 255;
+        const ghost = 0.3; // wire strength left over the painted image
+        const edge = p * (TH + 8); // in sketch rows, top-down
+        for (let ty = 0; ty < TH; ty++) {
+            const ys = TH - 1 - ty; // sketch space: 0 = top
+            const reveal = (edge - ys) / 6;
+            for (let tx = 0; tx < TW; tx++) {
+                const k = ty * TW + tx;
+                const i = k * 4;
+                const wire = this.wireMask[k] === 1;
+                if (reveal > RoomViewport.BAYER[(ys & 3) * 4 + (tx & 3)] / 16) {
+                    if (wire) {
+                        this.pixels[i] = this.art[i] + (cr - this.art[i]) * ghost;
+                        this.pixels[i + 1] = this.art[i + 1] + (cg - this.art[i + 1]) * ghost;
+                        this.pixels[i + 2] = this.art[i + 2] + (cb - this.art[i + 2]) * ghost;
+                    } else {
+                        this.pixels[i] = this.art[i];
+                        this.pixels[i + 1] = this.art[i + 1];
+                        this.pixels[i + 2] = this.art[i + 2];
+                    }
+                    this.pixels[i + 3] = 255;
+                } else if (wire) {
+                    this.pixels[i] = cr;
+                    this.pixels[i + 1] = cg;
+                    this.pixels[i + 2] = cb;
+                    this.pixels[i + 3] = 255;
+                } else {
+                    this.pixels[i + 3] = 0;
+                }
+            }
+            // bright scanline riding the reveal edge
+            if (Math.abs(ys - edge) < 1 && p < 1) {
+                for (let tx = 0; tx < TW; tx++) {
+                    const i = (ty * TW + tx) * 4;
+                    this.pixels[i] = 220;
+                    this.pixels[i + 1] = 255;
+                    this.pixels[i + 2] = 255;
+                    this.pixels[i + 3] = 255;
+                }
+            }
+        }
+        if (this.provider) {
+            this.provider.setPixels(0, 0, TW, TH, this.pixels);
+        }
+    }
+
+    /** Finish (hand over to the full-res image) or cancel the paint-in. */
+    private endPaint(showFlat: boolean): void {
+        if (!this.painting) {
+            return;
+        }
+        this.painting = false;
+        if (showFlat) {
+            this.setFlatVisible(true);
+            this.stopSketch();
+        }
+    }
+
+    private setFlatVisible(on: boolean): void {
+        if (this.illustrator && this.illustrator.flatImage) {
+            this.illustrator.flatImage.getSceneObject().enabled = on;
         }
     }
 
@@ -260,6 +418,19 @@ export class RoomViewport extends BaseScriptComponent {
         if (this.captionText && this.captionShown < this.caption.length) {
             this.captionShown = Math.min(this.caption.length, this.captionShown + Math.max(1, Math.round(dt * 60)));
             this.captionText.text = this.caption.substr(0, this.captionShown);
+        }
+        this.roomT += dt;
+        if (this.painting) {
+            this.paintT += dt;
+            this.frameClock += dt;
+            const p = Math.min(1, this.paintT / Math.max(0.05, this.paintDur));
+            if (p >= 1) {
+                this.endPaint(true);
+            } else if (this.frameClock >= 1 / 20) {
+                this.frameClock = 0;
+                this.renderPaint(p);
+            }
+            return;
         }
         if (!this.sketching) {
             return;
