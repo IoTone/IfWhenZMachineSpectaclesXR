@@ -446,6 +446,25 @@
     []
   Components:
     - !<own> cd0ab5c3-5473-47cc-92b1-0374039a4d34
+- !<Image/0f171869-80da-4280-ba54-832da4cf84bf>
+  PrefabRemaps:
+    []
+  Name: Image
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Fit
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> 6d311f68-e0c1-4fad-8c54-4c06f99022bd
+  FlipX: false
+  FlipY: false
+  RotationAngle: 0
+  Pivot: {x: 0.000000, y: 0.000000}
+  ExtentsTarget: !<reference> 00000000-0000-0000-0000-000000000000
 - !<SceneObject/0f704a07-d079-4984-9aaf-bf4a989b3490>
   PrefabRemaps:
     []
@@ -943,6 +962,21 @@
     - !<own> 298f274e-575f-40f7-a4f3-e4eaeaaecd67
   Components:
     []
+- !<SceneObject/1be61cea-42e9-4fbd-a3b8-297a5d3b8c8b>
+  PrefabRemaps:
+    []
+  Name: CassetteBezel
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 32.000000, y: 32.000000, z: 32.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 0f171869-80da-4280-ba54-832da4cf84bf
 - !<ScriptComponent/1d247b95-c700-48c1-858c-2d970e66e279>
   PrefabRemaps:
     []
@@ -1674,8 +1708,11 @@
   Enabled: true
   ScriptAsset: !<reference> 968aeff2-83fb-4662-9a4a-52ffd1445df7
   ScriptInputsDefault:
+    framePadding: true
     drawSeconds: true
     holdSeconds: true
+    paintSeconds: true
+    cachedPaintSeconds: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -1686,8 +1723,12 @@
       labelText: !<reference.Text> e77fe9fc-98d0-49b7-b384-e7631836acd6
       captionText: !<reference.Text> d4da966e-43e3-40b4-b7b1-56ff7fff4fc9
       monoFont: !<reference.Font> 0f3de735-eadc-4f75-a1af-2a4c1c32c923
+      frameImage: !<reference.Image> 982a4e50-398b-4cd4-bcdf-fcd0f072775d
+      framePadding: !<float> 1.000000
       drawSeconds: 1.400000
       holdSeconds: 1.200000
+      paintSeconds: !<float> 1.000000
+      cachedPaintSeconds: 0.350000
   ScriptTypes:
     "":
       {}
@@ -1716,6 +1757,21 @@
   ScriptTypes:
     "":
       {}
+- !<SceneObject/37f95587-5a53-4b18-aeba-5ae2e4ddcd43>
+  PrefabRemaps:
+    []
+  Name: ViewportFrame
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 32.000000, y: 32.000000, z: 32.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 982a4e50-398b-4cd4-bcdf-fcd0f072775d
 - !<SceneObject/38525cab-c9f5-4965-814b-8eb0d8b9ad55>
   PrefabRemaps:
     []
@@ -1963,6 +2019,8 @@
     distance: true
     wrapColumn: true
     defaultGameId: true
+    cassetteStyle: true
+    warp: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -1975,6 +2033,10 @@
       distance: !<float> 55.000000
       wrapColumn: !<float> 38.000000
       defaultGameId: minizork
+      cassetteStyle: true
+      monoFont: !<reference.Font> 0f3de735-eadc-4f75-a1af-2a4c1c32c923
+      bezelImage: !<reference.Image> 0f171869-80da-4280-ba54-832da4cf84bf
+      warp: 0.070000
   ScriptTypes:
     "":
       {}
@@ -2785,6 +2847,7 @@
     - !<own> d57c5d9a-c18b-468c-8c8e-9dbea4b6e678
     - !<own> 1e6983e2-65b8-4f10-b82b-f5ea5bff7505
     - !<own> 84ae8513-09f2-45f9-9e2f-0ad940f8ad56
+    - !<own> 1be61cea-42e9-4fbd-a3b8-297a5d3b8c8b
   Components:
     - !<own> 42624ba7-7b37-43ca-a826-4e45e549df3f
 - !<SceneObject/60cd5f83-9b89-4249-8726-1711c77168a9>
@@ -3962,6 +4025,25 @@
   RotationAngle: 0
   Pivot: {x: 0.000000, y: 0.000000}
   ExtentsTarget: !<reference> 00000000-0000-0000-0000-000000000000
+- !<Image/982a4e50-398b-4cd4-bcdf-fcd0f072775d>
+  PrefabRemaps:
+    []
+  Name: Image
+  Enabled: false
+  RenderOrder: 0
+  StretchMode: Fit
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> 5b09bcd9-d174-4c2d-9e10-a09dca966f44
+  FlipX: false
+  FlipY: false
+  RotationAngle: 0
+  Pivot: {x: 0.000000, y: 0.000000}
+  ExtentsTarget: !<reference> 00000000-0000-0000-0000-000000000000
 - !<SceneObject/9a14c486-688a-4af4-a99a-084652f3efa1>
   PrefabRemaps:
     []
@@ -4640,7 +4722,7 @@
       flatImage: !<reference.Image> fc3ed066-292f-44d9-a436-30a84ca75cae
       spatialFrame: !<reference.ScriptComponent> cd0ab5c3-5473-47cc-92b1-0374039a4d34
       credentials: !<reference.ScriptComponent> 1d247b95-c700-48c1-858c-2d970e66e279
-      spatialHeight: !<float> 0.000000
+      spatialHeight: 12.500000
       spatialOffset: !<float> 0.000000
       spatialDepth: !<float> 15.000000
       stylePrompt: "Painterly storybook illustration for a classic text adventure, atmospheric, muted colors, no text, no letters, no watermark"
@@ -4783,6 +4865,7 @@
     - !<own> 4cad9006-9681-4e43-be29-d3c2d71a021e
     - !<own> da4b19ae-2a47-416e-a230-c72cb12f739d
     - !<own> 06eccbd8-456c-40c9-868f-1ff7bbbf31aa
+    - !<own> 37f95587-5a53-4b18-aeba-5ae2e4ddcd43
   Components:
     - !<own> b6d8a7bc-33be-4c7b-af51-23d2d10ff8ff
 - !<SceneObject/bf80c728-14c2-4356-bb4c-8d794498688e>

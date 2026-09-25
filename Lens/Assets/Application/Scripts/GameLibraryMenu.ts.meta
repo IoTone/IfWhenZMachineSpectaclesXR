@@ -26,12 +26,16 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    bezelImage: false
     buttonPrefab: false
+    cassetteStyle: false
     defaultGameId: false
     detailText: false
     distance: false
+    monoFont: false
     scrollMenu: false
     titleText: false
+    warp: false
     wrapColumn: false
     zmHost: false
   ScriptTypesHidden:
@@ -51,6 +55,10 @@
       distance: !<float> 55.000000
       wrapColumn: !<float> 38.000000
       defaultGameId: minizork
+      cassetteStyle: true
+      monoFont: !<reference.Font> 00000000-0000-0000-0000-000000000000
+      bezelImage: !<reference.Image> 00000000-0000-0000-0000-000000000000
+      warp: 0.070000
   ScriptTypes:
     -
       {}
@@ -63,3 +71,7 @@
     - // @input float distance = 55
     - // @input float wrapColumn = 38
     - '// @input string defaultGameId = "minizork"'
+    - // @input bool cassetteStyle = true
+    - // @input Asset.Font monoFont
+    - // @input Component.Image bezelImage
+    - // @input float warp = 0.07

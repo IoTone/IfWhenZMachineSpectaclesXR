@@ -187,6 +187,10 @@ The promo's tilted terminal, as the main reading surface:
 
 ### 4.5 Command chips (restyles `ScrollButtonDataLoader` / `ActionsPanel`, same grammar logic)
 
+> **Superseded (2026-09-25) by the Command Deck in §11.** Restyling the SIK button list as neon
+> chips doesn't fix its real problems: one long flat list that's hard to scroll and mixes game
+> commands with settings. Kept below for history.
+
 The grammar-guided builder is one of the strongest pieces of the Lens, so only its presentation
 changes:
 
@@ -331,3 +335,145 @@ cd Promo && PREVIEW=2,4.6,10.5,13.9,15.2,18.8,22.6,25 uv run --with pillow --wit
 
 Remember §2 when reading these: the stills show the look on a black screen. On glass, every dark
 area in them is the room.
+
+## 11. Addendum (2026-09-25): Scrollback and the Command Deck
+
+Phases 1–3 and the Cassette Library are built. Two problems remain, and both come down to text
+that doesn't fit its box:
+
+1. **Long output is lost.** The transcript keeps only its last `maxLines` (16) lines. A long intro
+   or room description scrolls its beginning away before you can read it, and there's no way back.
+2. **"Choose an action" is the last stock-SIK surface, and it's hard to use.** It's one flat
+   scroll list of ~29 buttons: room/inventory nouns, ten fixed verbs, twelve compass
+   directions, then settings (Narrate, Effects, Immersive, Save, New Game, Library) mixed in with
+   the game commands. It's slow to scroll, hard to scan, and suggests verbs the story may not
+   understand.
+
+The answer to both is one shared piece, a **CRT list with scrolling** (§11.1). The transcript
+(§11.2) and a new **Command Deck** (§11.3) are built on it, in the Cassette Library's style: mono
+lilac/phosphor text on the warped grid, an inverse-video highlight bar, a bezel, and glitches.
+
+### 11.1 `CrtList`: the shared scroll component
+
+Extracted from what the Cassette Library already does, so there's one implementation:
+
+- **Windowing:** a fixed pool of *N* Text rows (e.g. 12–16) shows lines `offset .. offset+N`
+  of any length of content. Rows are reused, never created per line, so a 400-line history
+  costs the same to draw as 16 lines.
+- **One touch surface** (collider + Interactable) over the rows, as in the Cassette:
+  - hover moves the highlight bar (for lists that select);
+  - **pinch-drag scrolls**: vertical hand travel maps to lines, with a little momentum;
+  - a pinch without drag is a tap: select or activate.
+- **Gutter:** a one-column scrollbar drawn as text on the right edge: `▲`, a `█` thumb sized to
+  the visible fraction on a `│` track, `▼`. Tapping ▲/▼ pages. It's only drawn when content
+  overflows.
+- **Follow mode:** sticks to the bottom as content arrives. If you scroll up, it stays put and
+  shows a blinking `▼ MORE` in the gutter until you return to the bottom.
+- **Look:** the same warp (per-row scale), bezel and glitch hooks as the Cassette; Effects:
+  Reduced turns off momentum and glitches.
+- **Cost:** per-frame work only while dragging or animating. Idle is one flag check.
+
+Retrofit: the Cassette Library moves onto `CrtList` (11 stories fit today; the library can now
+grow past one screen).
+
+### 11.2 Transcript scrollback and `— MORE —` paging
+
+- **History:** ZMachineHost keeps a rolling transcript history (e.g. the last 400 wrapped lines)
+  instead of truncating to 16. The Terminal Monitor shows it through `CrtList` (display-only rows;
+  no highlight bar).
+- **Scroll back:** pinch-drag on the monitor glass, or tap the gutter's ▲. A new turn snaps back to
+  the bottom only if you were already there. Otherwise `▼ MORE` blinks and you catch up when
+  ready.
+- **`— MORE —` paging:** when one turn's output is taller than the screen, the typed reveal
+  (`TypedReveal`) pauses at the page boundary and shows a reverse-video `— MORE —` line, the way
+  1983 terminals did. Tap the monitor, pinch, or say "more" to continue. Effects: Reduced and
+  "skip" (any command) still flush everything at once.
+- **Narration is unaffected:** TTS already receives whole turns; paging is display-only.
+
+### 11.3 The Command Deck (replaces "Choose an action")
+
+A CRT control panel at the current lectern position (below and between the Monitor and the
+Viewport, tilted up toward the eyes; the world-locked placement already works ergonomically).
+It's a **text tree** of what you can type or say, in two trunks:
+
+```
+┌─────────────────────────────────────┐
+│ > TAKE ▒                        ⌫ ⏎ │  <- command line (also typed at the Monitor prompt)
+│                                     │
+│ GAME                                │
+│  ├ GO ▸     N  S  E  W  UP  DOWN ... │  <- directions: one dense row, not 12 buttons
+│  ├ LOOK   INVENTORY   WAIT   AGAIN  │  <- no-object verbs submit immediately
+│  ├ TAKE ▾                           │  <- expanded: objects for this verb
+│  │   ├ LEAFLET        (here)        │
+│  │   └ SMALL MAILBOX  (here)        │
+│  ├ DROP ▸      (only when carrying) │
+│  ├ OPEN ▸  CLOSE ▸  READ ▸  PUT ▸   │
+│  ├ EXAMINE ▸                        │
+│  └ MORE VERBS ▸  (story dictionary) │
+│ RECENT  > open mailbox  > north     │  <- last 3 commands, one tap to repeat
+│ SYSTEM                              │
+│  ├ SAVE   RESTORE   UNDO            │
+│  ├ NARRATE: ON  EFFECTS: FULL       │
+│  ├ IMMERSIVE: ON                    │
+│  └ NEW GAME   LIBRARY               │
+└─────────────────────────────────────┘
+```
+
+**Navigation (all on `CrtList`):**
+- Hover moves the inverse bar. Pinch on a `▸` branch expands it in place (`▾`) and collapses the
+  previous one, so at most one branch is open and the list stays short.
+- Picking a transitive verb types it onto the **command line** (`> TAKE ▒`). Picking an object
+  completes it and submits (`> TAKE LEAFLET`), keeping the current grammar-guided behaviour. `⌫`
+  backs up a word; `⏎` submits a command you composed yourself (e.g. `PUT` + object + `IN` +
+  object).
+- The command line is mirrored at the Monitor prompt, as the proposal's §4.5 intended. You watch
+  the command form where the game answers, and it echoes with the typed reveal.
+- The whole tree scrolls when expanded branches overflow, and the gutter shows where you are.
+
+**What makes entries "valid" (the part that never worked well):**
+1. **Objects** come from the live scene context, as today: room objects under verbs that act on
+   the world, carried objects under DROP/PUT/GIVE, tagged `(here)` / `(carried)`. Verbs with
+   nothing to act on are dimmed or hidden (no DROP with empty hands).
+2. **Verbs** come from the **story's own dictionary.** Every Z-machine story ships a dictionary of
+   every word its parser accepts, and the header already gives us its address
+   (`dictionaryAddress` in `ZMachine.parseHeader`). Words flagged as verbs, minus the common set
+   shown on the top level, become `MORE VERBS ▸`. So the tree offers only words *this* story
+   understands (Adventure's `XYZZY`, 9:05's `SHOWER`), instead of a guessed list. The top-level
+   verbs are also filtered through the dictionary, so a story without `READ` won't offer it.
+3. **Directions:** all twelve on one row; any the current room's description names first are
+   shown brighter. That's cheap to do from the room text; true exit detection isn't possible in
+   general Z-code.
+4. **RECENT:** the last three submitted commands, one tap to repeat (a lot of IF is `AGAIN` and
+   small variations).
+
+**Voice:** the deck doubles as the cheat sheet for what you can say. While the mic is held, the
+command line shows the live transcription, and a spoken command that matches a tree path lights
+it briefly on submit, so players learn the vocabulary from the tree.
+
+**System vs game:** the SYSTEM trunk holds everything that isn't a story command. Settings live
+here instead of among the verbs. SAVE/RESTORE/UNDO go to the interpreter as today.
+
+### 11.4 Build steps
+
+Each step is compiled, run in Preview and checked on device before the next, as in phases 1–3.
+
+| Step | What | Retires |
+|---|---|---|
+| **6A** | `CrtList.ts`: pooled rows, warp, highlight bar, drag-scroll with momentum, text gutter, follow mode. Cassette Library moves onto it. | Cassette's bespoke list code |
+| **6B** | Transcript history + scrollback on the Terminal Monitor; `— MORE —` paging in `TypedReveal`. | 16-line truncation |
+| **6C** | **Dictionary reader** in tszm (`host-core`): list words and verb flags for the loaded story. Verify the flag layout on all 11 library stories with `tszm/test/validate-library.js` before any UI depends on it. | — |
+| **6D** | Command Deck v1: bezel panel at the lectern, command line, GAME/SYSTEM trunks, one-open-branch expansion, objects from scene context, RECENT. | SIK "Choose an action" scroll menu, QuickButtons "Clear" (becomes `⌫`) |
+| **6E** | Dictionary-filtered verbs + `MORE VERBS ▸`, direction hints from room text, voice path lighting. | Hard-coded `VERBS` list |
+
+### 11.5 Open questions
+
+1. **Deck placement:** keep the lectern (below, tilted up), or a vertical side panel? The lectern
+   suits "control panel" and keeps the Monitor/Viewport pair clear. Recommendation: lectern.
+2. **Drag vs. buttons for scrolling:** SIK pinch-drag on a collider should work on device, but
+   needs a real-hand test. The gutter ▲/▼ tap targets are the fallback if drag feels poor.
+3. **Dictionary verb flags:** Inform 6 and Infocom stories mark verbs differently in the
+   dictionary's data bytes, and some games under-flag. 6C's validation decides whether
+   `MORE VERBS` is filtered by flag, or shows all dictionary words minus nouns already known from
+   the object tree.
+4. **How many rows** the deck shows before scrolling: 14 looks right at the Cassette's text size,
+   to be tuned on device.
