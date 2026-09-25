@@ -4,6 +4,7 @@ import {
     AvaliableApiTypes,
 } from "RemoteServiceGateway.lspkg/RemoteServiceGatewayCredentials";
 import { ZMachineHost } from "./ZMachineHost";
+import { UxSettings } from "./UxSettings";
 
 const RSM_IMAGEN = requireAsset(
     "../../RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/Imagen_Sync.remoteServiceModule"
@@ -211,31 +212,8 @@ export class RoomIllustrator extends BaseScriptComponent {
             if (this.spatialFrame) {
                 // Slightly in front of the flat plane: when the mesh renders
                 // it covers the flat image; when it doesn't, the flat remains.
-                this.spatialFrame
-                    .getSceneObject()
-                    .getTransform()
-                    .setLocalPosition(new vec3(-6, 19, 2));
-                // Size the portal to the illustration slot; component defaults
-                // (frameHeight 60, frameOffset -100) render a room-sized
-                // backdrop a meter behind the rig.
-                // spatialHeight <= 0 means: keep the component's native
-                // portal size (frameHeight 100 / offset -200 / depth 100 —
-                // the large backdrop look). Set a positive height to shrink.
-                if (this.spatialHeight > 0) {
-                    try {
-                        const offset =
-                            this.spatialOffset !== 0
-                                ? this.spatialOffset
-                                : (-200 * this.spatialHeight) / 100;
-                        const depth = this.spatialDepth > 0 ? this.spatialDepth : this.spatialHeight;
-                        (this.spatialFrame as any).setMaterialProperties(this.spatialHeight, offset, depth);
-                        print("RoomIllustrator: spatial portal h=" + this.spatialHeight + " off=" + offset + " d=" + depth);
-                    } catch (e) {
-                        print("RoomIllustrator: could not size spatial frame (" + e + ")");
-                    }
-                } else {
-                    print("RoomIllustrator: spatial portal at native size");
-                }
+                this.applySpatialMode();
+                UxSettings.onImmersiveChanged(() => this.applySpatialMode());
                 // Progressive display: the flat plane stays visible until the
                 // spatialized mesh has actually loaded.
                 try {
@@ -661,6 +639,51 @@ export class RoomIllustrator extends BaseScriptComponent {
         }
     }
 
+    /**
+     * Immersive ON: the component's native room-sized backdrop (frameHeight
+     * 100 / offset -200 / depth 100) at its original spot above the rig.
+     * OFF: a portal sized to the Room Viewport, sitting on it.
+     */
+    private applySpatialMode(): void {
+        if (!this.spatialFrame) {
+            return;
+        }
+        const frame = this.spatialFrame as any;
+        try {
+            if (UxSettings.immersive) {
+                const t = this.spatialFrame.getSceneObject().getTransform();
+                t.setLocalRotation(quat.quatIdentity());
+                t.setLocalPosition(new vec3(-6, 19, 2));
+                frame.setMaterialProperties(100, -200, 100);
+                print("RoomIllustrator: spatial portal immersive (native backdrop)");
+            } else {
+                this.placeSpatial();
+                const h = this.spatialHeight > 0 ? this.spatialHeight : 12.5;
+                const offset = this.spatialOffset !== 0 ? this.spatialOffset : (-200 * h) / 100;
+                const depth = this.spatialDepth > 0 ? this.spatialDepth : h;
+                frame.setMaterialProperties(h, offset, depth);
+                print("RoomIllustrator: spatial portal in viewport h=" + h + " off=" + offset + " d=" + depth);
+            }
+        } catch (e) {
+            print("RoomIllustrator: could not size spatial frame (" + e + ")");
+        }
+    }
+
+    /**
+     * Put the spatial portal on the flat image's slot (UX2 Room Viewport),
+     * 2 cm in front of it and facing the same way, instead of a fixed spot.
+     */
+    private placeSpatial(): void {
+        if (!this.spatialFrame || !this.flatImage) {
+            return;
+        }
+        const slot = this.flatImage.getSceneObject().getTransform();
+        const t = this.spatialFrame.getSceneObject().getTransform();
+        const rot = slot.getLocalRotation();
+        t.setLocalRotation(rot);
+        t.setLocalPosition(slot.getLocalPosition().add(rot.multiplyVec3(new vec3(0, 0, 2))));
+    }
+
     private display(texture: Texture, room: string, source: string): void {
         print("RoomIllustrator: showing " + room + " (" + source + ")");
         // Flat image first — always visible immediately, never blocked on the
@@ -674,6 +697,7 @@ export class RoomIllustrator extends BaseScriptComponent {
         }
         if (this.spatialFrame) {
             try {
+                this.applySpatialMode(); // backdrop or viewport, per the Immersive setting
                 this.spatialFrame.getSceneObject().enabled = true;
                 (this.spatialFrame as any).setImage(texture, true);
             } catch (e) {

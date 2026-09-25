@@ -141,6 +141,7 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
         }
         buttons.push(this.button(this.narrator && this.narrator.isOn ? "Narrate: On" : "Narrate: Off", "meta", "narrate"));
         buttons.push(this.button(UxSettings.effectsReduced ? "Effects: Reduced" : "Effects: Full", "meta", "effects"));
+        buttons.push(this.button(UxSettings.immersive ? "Immersive: On" : "Immersive: Off", "meta", "immersive"));
         buttons.push(this.button("Save", "verb", "save", false));
         buttons.push(this.button("Restore", "verb", "restore", false));
         buttons.push(this.button("New Game", "meta", "newgame"));
@@ -177,6 +178,9 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
                     this.narrator.toggle();
                     this.rebuild(); // refresh the On/Off label
                 }
+            } else if (data.command === "immersive") {
+                UxSettings.toggleImmersive();
+                this.rebuild(); // refresh the On/Off label
             } else if (data.command === "effects") {
                 UxSettings.toggleEffects();
                 this.rebuild(); // refresh the Full/Reduced label

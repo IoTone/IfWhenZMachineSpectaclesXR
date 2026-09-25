@@ -218,7 +218,8 @@ export class ZMachineHost extends BaseScriptComponent {
      * to the rig (this component's parent object), which is pushed
      * `rigDistance` cm in front of the user.
      *
-     *   illustration  (-6, 19)   art above everything
+     *   illustration  (12, 4)    UX2 Room Viewport, right of the monitor,
+     *                             20x12.5 cm, yawed 9 deg toward the player
      *   status        (-14, 12.5) room/score line
      *   transcript    (-14, 6)    prose column, grows downward
      *   actions panel (22, 6)     button columns, clear to the right
@@ -243,8 +244,11 @@ export class ZMachineHost extends BaseScriptComponent {
             }
         }
         if (this.illustration) {
-            this.illustration.getTransform().setLocalPosition(new vec3(-6, 19, 0));
-            this.illustration.getTransform().setLocalScale(new vec3(12, 7.5, 1));
+            // UX2 two-panel layout: Terminal Monitor left, Room Viewport right
+            // (the promo's arrangement), mirrored tilt toward the player.
+            this.illustration.getTransform().setLocalPosition(new vec3(12, 4, 0));
+            this.illustration.getTransform().setLocalScale(new vec3(20, 12.5, 1));
+            this.illustration.getTransform().setLocalRotation(quat.angleAxis((-9 * Math.PI) / 180, vec3.up()));
         }
     }
 

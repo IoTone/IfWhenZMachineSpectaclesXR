@@ -26,13 +26,17 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    cachedPaintSeconds: false
     captionText: false
     drawSeconds: false
+    frameImage: false
+    framePadding: false
     holdSeconds: false
     illustrationSlot: false
     illustrator: false
     labelText: false
     monoFont: false
+    paintSeconds: false
     zmHost: false
   ScriptTypesHidden:
     {}
@@ -49,8 +53,12 @@
       labelText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       captionText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       monoFont: !<reference.Font> 00000000-0000-0000-0000-000000000000
+      frameImage: !<reference.Image> 00000000-0000-0000-0000-000000000000
+      framePadding: !<float> 1.000000
       drawSeconds: 1.400000
       holdSeconds: 1.200000
+      paintSeconds: !<float> 1.000000
+      cachedPaintSeconds: 0.350000
   ScriptTypes:
     -
       {}
@@ -61,5 +69,9 @@
     - // @input Component.Text labelText
     - // @input Component.Text captionText
     - // @input Asset.Font monoFont
+    - // @input Component.Image frameImage
+    - // @input float framePadding = 1
     - // @input float drawSeconds = 1.4
     - // @input float holdSeconds = 1.2
+    - // @input float paintSeconds = 1
+    - // @input float cachedPaintSeconds = 0.35

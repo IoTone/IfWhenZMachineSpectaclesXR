@@ -46,6 +46,15 @@ export class RoomViewport extends BaseScriptComponent {
     @allowUndefined
     monoFont: Font;
 
+    /** Neon rim around the viewport (an Image using the MonitorFrame material). */
+    @input
+    @allowUndefined
+    frameImage: Image;
+
+    /** Glass margin (cm) between the image and the rim. */
+    @input
+    framePadding: number = 1.0;
+
     /** Seconds to draw the full sketch, and to hold it before re-sketching. */
     @input
     drawSeconds: number = 1.4;
@@ -84,6 +93,11 @@ export class RoomViewport extends BaseScriptComponent {
     private paintT: number = 0;
     private paintDur: number = 1;
     private roomT: number = 0;
+    private sweeping: boolean = false;
+    private sweepT: number = 0;
+    /** monitor_frame.png rim rectangle as a fraction of the texture (44 px margins). */
+    private static readonly RIM_FRAC_X = 1 - (2 * 44) / 1200;
+    private static readonly RIM_FRAC_Y = 1 - (2 * 44) / 1000;
     private static readonly BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 
     onAwake() {
@@ -120,6 +134,8 @@ export class RoomViewport extends BaseScriptComponent {
             this.zmHost.addSceneContextListener((ctx: any) => {
                 this.lastCtx = ctx;
                 if (!ctx) {
+                    this.sweeping = false;
+                    this.setFrameVisible(false);
                     this.endPaint(false);
                     this.stopSketch();
                     this.setLabel("");
@@ -131,7 +147,7 @@ export class RoomViewport extends BaseScriptComponent {
             this.illustrator.setLoadingListener({
                 onSceneLoadStart: (room: string) => this.beginRoom(room),
                 onImageShown: (_room: string, texture?: Texture) => this.paint(texture),
-                onSpatialReady: () => this.stage("SPATIAL IMAGE · 3D", Theme.cyan, false),
+                onSpatialReady: () => this.spatialArrived(),
                 onImageUnavailable: () => this.stage("TEXT ONLY", Theme.pink, true),
             });
             // We start in the same frame as the illustrator, often just after
@@ -151,7 +167,7 @@ export class RoomViewport extends BaseScriptComponent {
         }
         const src = this.illustrationSlot.getTransform();
         const t = this.getSceneObject().getTransform();
-        t.setWorldPosition(src.getWorldPosition().add(src.forward.uniformScale(0.2)));
+        t.setWorldPosition(src.getWorldPosition().add(src.forward.uniformScale(2.6)));
         t.setWorldRotation(src.getWorldRotation());
         t.setWorldScale(src.getWorldScale());
         // Label + caption hang under the viewport's bottom-left corner. They
@@ -178,6 +194,24 @@ export class RoomViewport extends BaseScriptComponent {
         };
         place(this.labelText, 0.9);
         place(this.captionText, 2.3);
+        if (this.frameImage) {
+            // rim hugs the viewport with a glass margin, just behind the image
+            this.frameImage.stretchMode = StretchMode.Stretch;
+            const ft = this.frameImage.getSceneObject().getTransform();
+            ft.setWorldRotation(src.getWorldRotation());
+            ft.setWorldPosition(src.getWorldPosition().sub(src.forward.uniformScale(0.3)));
+            ft.setWorldScale(new vec3(
+                (sc.x + 2 * this.framePadding) / RoomViewport.RIM_FRAC_X,
+                (sc.y + 2 * this.framePadding) / RoomViewport.RIM_FRAC_Y,
+                1
+            ));
+        }
+    }
+
+    private setFrameVisible(on: boolean): void {
+        if (this.frameImage) {
+            this.frameImage.enabled = on;
+        }
     }
 
     private styleText(text: Text, size: number, color: vec4): void {
@@ -211,6 +245,8 @@ export class RoomViewport extends BaseScriptComponent {
     // ------------------------------------------------------------ stages
     private beginRoom(room: string): void {
         this.endPaint(false);
+        this.sweeping = false;
+        this.setFrameVisible(true);
         this.room = room;
         this.roomT = 0;
         this.placeOverSlot(); // the rig may have been re-parked since start
@@ -371,6 +407,50 @@ export class RoomViewport extends BaseScriptComponent {
         }
     }
 
+    /** 3D mesh loaded: label it and run one depth-scan sweep down the viewport. */
+    private spatialArrived(): void {
+        this.setLabel("SPATIAL IMAGE · 3D", Theme.cyan);
+        if (UxSettings.effectsReduced || !this.provider || this.painting) {
+            return;
+        }
+        this.sketching = false;
+        this.sweeping = true;
+        this.sweepT = 0;
+        this.frameClock = 1;
+        if (this.image) {
+            this.image.enabled = true;
+        }
+    }
+
+    /** One sweep frame: a bright cyan scan line with a dotted trail. */
+    private renderSweep(p: number): void {
+        const TW = RoomViewport.TW;
+        const TH = RoomViewport.TH;
+        const c = Theme.cyan;
+        this.pixels.fill(0);
+        const ys = Math.floor(p * (TH - 1)); // sketch space, 0 = top
+        const put = (x: number, y: number, r: number, g: number, b: number) => {
+            if (y < 0 || y >= TH) {
+                return;
+            }
+            const i = ((TH - 1 - y) * TW + x) * 4;
+            this.pixels[i] = r;
+            this.pixels[i + 1] = g;
+            this.pixels[i + 2] = b;
+            this.pixels[i + 3] = 255;
+        };
+        for (let x = 0; x < TW; x++) {
+            put(x, ys, 220, 255, 255);
+            put(x, ys - 1, c.r * 255, c.g * 255, c.b * 255);
+            if (x % 6 === 0) {
+                put(x, ys - 4, c.r * 255, c.g * 255, c.b * 255); // depth-sample dots
+            }
+        }
+        if (this.provider) {
+            this.provider.setPixels(0, 0, TW, TH, this.pixels);
+        }
+    }
+
     private stopSketch(): void {
         this.sketching = false;
         if (this.image) {
@@ -381,8 +461,11 @@ export class RoomViewport extends BaseScriptComponent {
     private captionFor(room: string): string {
         let body = (this.zmHost && this.zmHost.lastTurnText) || "";
         const r = room.trim();
-        if (r.length > 0 && body.toLowerCase().indexOf(r.toLowerCase()) === 0) {
-            body = body.slice(r.length);
+        // The room header precedes its description; take what follows its LAST
+        // appearance, so a first turn's title banner isn't captioned.
+        const at = r.length > 0 ? body.toLowerCase().lastIndexOf(r.toLowerCase()) : -1;
+        if (at >= 0) {
+            body = body.slice(at + r.length);
         }
         body = body.replace(/^\s*\([^)]*\)\s*/, "").trim(); // "(in bed)"
         const stop = body.search(/[.!?](\s|$)/);
@@ -420,6 +503,19 @@ export class RoomViewport extends BaseScriptComponent {
             this.captionText.text = this.caption.substr(0, this.captionShown);
         }
         this.roomT += dt;
+        if (this.sweeping) {
+            this.sweepT += dt;
+            this.frameClock += dt;
+            const p = this.sweepT / 0.8;
+            if (p >= 1) {
+                this.sweeping = false;
+                this.stopSketch();
+            } else if (this.frameClock >= 1 / 20) {
+                this.frameClock = 0;
+                this.renderSweep(p);
+            }
+            return;
+        }
         if (this.painting) {
             this.paintT += dt;
             this.frameClock += dt;
