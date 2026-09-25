@@ -37,6 +37,8 @@
     rigDistance: false
     startGameId: false
     statusText: false
+    typedReveal: false
+    useThemeColors: false
     wrapColumn: false
   ScriptTypesHidden:
     {}
@@ -59,6 +61,8 @@
       autoStart: true
       autoAdvanceIntroKeys: true
       autoAdvanceDelaySeconds: 1.500000
+      typedReveal: true
+      useThemeColors: true
   ScriptTypes:
     -
       {}
@@ -75,3 +79,5 @@
     - // @input bool autoStart = true
     - // @input bool autoAdvanceIntroKeys = true
     - // @input float autoAdvanceDelaySeconds = 1.5
+    - // @input bool typedReveal = true
+    - // @input bool useThemeColors = true

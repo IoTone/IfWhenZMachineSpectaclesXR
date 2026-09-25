@@ -20,6 +20,8 @@
 // @ts-ignore - require is provided by the Lens runtime
 const tszmModule = require("./tszm/tszm.js");
 import { GAMES, GameEntry, getGame } from "./games/registry";
+import { Theme } from "./Theme";
+import { TypedReveal } from "./TypedReveal";
 
 @component
 export class ZMachineHost extends BaseScriptComponent {
@@ -78,6 +80,18 @@ export class ZMachineHost extends BaseScriptComponent {
     @input
     autoAdvanceDelaySeconds: number = 1.5;
 
+    /**
+     * UX2 typed reveal: game output types onto the transcript instead of
+     * popping in; any player command skips to the end. Off = instant text
+     * (the "Effects: Reduced" behaviour).
+     */
+    @input
+    typedReveal: boolean = true;
+
+    /** Apply the UX2 Theme colours to the transcript and status line. */
+    @input
+    useThemeColors: boolean = true;
+
     private host: any = null;
     private tszm: any = null;
     private lines: string[] = [""];
@@ -92,6 +106,9 @@ export class ZMachineHost extends BaseScriptComponent {
     /** True once the game reaches its first command (line) prompt this session. */
     private firstLinePromptSeen: boolean = false;
     private introCharWait: number = 0;
+    private reveal: TypedReveal = new TypedReveal((chars) => this.writeChars(chars));
+    private cursorClock: number = 0;
+    private cursorOn: boolean = false;
     private demoCommands: string[] = [
         "open mailbox",
         "read leaflet",
@@ -116,7 +133,10 @@ export class ZMachineHost extends BaseScriptComponent {
             }
         });
         const tick = this.createEvent("UpdateEvent");
-        tick.bind(() => this.autoAdvanceTick());
+        tick.bind(() => {
+            this.autoAdvanceTick();
+            this.revealTick();
+        });
     }
 
     /**
@@ -140,6 +160,25 @@ export class ZMachineHost extends BaseScriptComponent {
             this.introCharWait = 0;
             print("ZMachineHost: auto-advancing intro key prompt");
             dev.pushInput(""); // resolves the read_char with the continue/exit key
+        }
+    }
+
+    /**
+     * Per-frame: feed the typed reveal, and blink the prompt cursor while the
+     * game waits. Idle cost is one queue check plus a text write ~4x/second.
+     */
+    private revealTick(): void {
+        // @ts-ignore - getDeltaTime is a Lens runtime global
+        const dt = getDeltaTime();
+        if (this.reveal.tick(dt)) {
+            return; // writeChars already re-rendered
+        }
+        const want = this.host !== null && this.awaitingInput && !this.reveal.busy
+            ? (this.cursorClock = (this.cursorClock + dt * Theme.cursorHz) % 1) < 0.6
+            : false;
+        if (want !== this.cursorOn) {
+            this.cursorOn = want;
+            this.renderTranscript();
         }
     }
 
@@ -188,6 +227,14 @@ export class ZMachineHost extends BaseScriptComponent {
         if (this.statusText) {
             this.statusText.getSceneObject().getTransform().setLocalPosition(new vec3(-14, 11, 0));
         }
+        if (this.useThemeColors) {
+            if (this.outputText) {
+                this.outputText.textFill.color = Theme.phosphor;
+            }
+            if (this.statusText) {
+                this.statusText.textFill.color = Theme.cyan;
+            }
+        }
         if (this.illustration) {
             this.illustration.getTransform().setLocalPosition(new vec3(-6, 19, 0));
             this.illustration.getTransform().setLocalScale(new vec3(12, 7.5, 1));
@@ -197,6 +244,7 @@ export class ZMachineHost extends BaseScriptComponent {
     /** Public API: send a player command to the game. */
     public submitCommand(cmd: string): void {
         if (this.host) {
+            this.reveal.flush(); // the player acted: show everything first
             this.host.device.pushInput(cmd);
             this.confirmCommand(cmd);
         }
@@ -327,6 +375,8 @@ export class ZMachineHost extends BaseScriptComponent {
         this.lastStatusLine = "";
         this.firstLinePromptSeen = false;
         this.introCharWait = 0;
+        this.reveal.clear();
+        this.cursorOn = false;
         if (this.statusText) {
             this.statusText.text = "";
         }
@@ -404,7 +454,7 @@ export class ZMachineHost extends BaseScriptComponent {
                 this.appendText(t);
                 this.turnBuffer += t;
             },
-            onEcho: (cmd: string) => this.appendText("> " + cmd + "\n"),
+            onEcho: (cmd: string) => this.appendText("> " + cmd + "\n", Theme.echoCps),
             onStatus: (s: string) => {
                 this.lastStatusLine = s;
                 this.renderStatus();
@@ -452,11 +502,20 @@ export class ZMachineHost extends BaseScriptComponent {
         print("ZMachineHost: started " + game.name + " (z" + game.zVersion + ", release " + game.release + ")");
     }
 
-    private appendText(chunk: string): void {
+    private appendText(chunk: string, cps: number = Theme.outputCps): void {
         if (!this.loggedFirstText && chunk.trim().length > 0) {
             this.loggedFirstText = true;
             print("ZMachineHost: first output: " + chunk.trim().slice(0, 100));
         }
+        if (this.typedReveal) {
+            this.reveal.push(chunk, cps);
+        } else {
+            this.writeChars(chunk);
+        }
+    }
+
+    /** Commit characters to the transcript model (wrap + scroll), then render. */
+    private writeChars(chunk: string): void {
         for (const ch of chunk) {
             if (ch === "\n") {
                 this.lines.push("");
@@ -477,8 +536,16 @@ export class ZMachineHost extends BaseScriptComponent {
         if (this.lines.length > this.maxLines) {
             this.lines = this.lines.slice(this.lines.length - this.maxLines);
         }
+        this.renderTranscript();
+    }
+
+    private renderTranscript(): void {
         if (this.outputText) {
-            this.outputText.text = this.lines.join("\n");
+            // The cursor slot is always occupied (glyph or a same-advance space in
+            // the monospace font), so blinking never changes the text extents —
+            // a changing extent makes the Text rescale the whole block.
+            const slot = this.cursorOn ? Theme.cursorGlyph : this.awaitingInput ? " " : "";
+            this.outputText.text = this.lines.join("\n") + slot;
         }
     }
 
