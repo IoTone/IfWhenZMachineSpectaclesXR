@@ -1,0 +1,62 @@
+- !<AssetImportMetadata/c858cc91-1408-442c-9e7d-577687a7889c>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> e555a53d-5dda-44da-8be1-c7778018280d
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> e555a53d-5dda-44da-8be1-c7778018280d
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 585a3a4b-4338-4e94-a1c3-ca6dc69a2e23
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/585a3a4b-4338-4e94-a1c3-ca6dc69a2e23>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 51831b7e-c43a-4b52-b4a3-85fb238e9164
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    depthOffset: false
+    host: false
+    outputText: false
+    padding: false
+    planeUnit: false
+    statusText: false
+    tiltDegrees: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - host: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      outputText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      statusText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      tiltDegrees: !<float> 9.000000
+      padding: 1.200000
+      planeUnit: !<float> 1.000000
+      depthOffset: 0.600000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType host
+    - // @input Component.Text outputText
+    - // @input Component.Text statusText
+    - // @input float tiltDegrees = 9
+    - // @input float padding = 1.2
+    - // @input float planeUnit = 1
+    - // @input float depthOffset = 0.6
