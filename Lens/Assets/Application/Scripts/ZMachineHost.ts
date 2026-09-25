@@ -461,7 +461,7 @@ export class ZMachineHost extends BaseScriptComponent {
                 this.appendText(t);
                 this.turnBuffer += t;
             },
-            onEcho: (cmd: string) => this.appendText("> " + cmd + "\n", Theme.echoCps),
+            onEcho: (cmd: string) => this.echoCommand(cmd),
             onStatus: (s: string) => {
                 this.lastStatusLine = s;
                 this.renderStatus();
@@ -475,25 +475,31 @@ export class ZMachineHost extends BaseScriptComponent {
                 // A line prompt means the intro is over: stop auto-advancing
                 // read_char so in-game menus/[MORE] respond to real presses.
                 this.firstLinePromptSeen = true;
+                // Turn is complete. Publish its text BEFORE notifying scene
+                // listeners: the illustrator builds its image prompt (and the
+                // viewport its caption) from lastTurnText, which previously
+                // still held the PREVIOUS turn here.
+                // Collapse spaces but KEEP line breaks for the narrator, which
+                // turns them into natural pauses.
+                const turnText = this.turnBuffer
+                    .replace(/[ \t]+/g, " ")
+                    .replace(/\n{2,}/g, "\n")
+                    .trim();
+                if (turnText.length > 0) {
+                    this.latestTurnText = turnText.replace(/\s+/g, " ");
+                }
                 if (ctx) {
                     this.lastContext = ctx;
                     for (const listener of this.sceneContextListeners) {
                         listener(ctx);
                     }
                 }
-                // Turn is complete: hand the accumulated text to the narrator.
-                // With no narrator registered yet, keep the buffer (capped) so
-                // a late-registering narrator can speak the opening text.
+                // Hand the text to the narrator. With no narrator registered
+                // yet, keep the buffer (capped) so a late-registering narrator
+                // can speak the opening text.
                 if (this.narrationListener) {
-                    // Collapse spaces but KEEP line breaks — the narrator
-                    // turns them into natural pauses.
-                    const turnText = this.turnBuffer
-                        .replace(/[ \t]+/g, " ")
-                        .replace(/\n{2,}/g, "\n")
-                        .trim();
                     this.turnBuffer = "";
                     if (turnText.length > 0) {
-                        this.latestTurnText = turnText.replace(/\s+/g, " ");
                         this.narrationListener(turnText);
                     }
                 } else if (this.turnBuffer.length > 2000) {
@@ -519,6 +525,17 @@ export class ZMachineHost extends BaseScriptComponent {
         } else {
             this.writeChars(chunk);
         }
+    }
+
+    /**
+     * Echo a submitted command. The game has usually just printed its own ">"
+     * prompt, so continue that line instead of adding a second prompt
+     * (which showed as ">> south").
+     */
+    private echoCommand(cmd: string): void {
+        this.reveal.flush();
+        const tail = this.lines[this.lines.length - 1].trim();
+        this.appendText((tail === ">" ? " " : "> ") + cmd + "\n", Theme.echoCps);
     }
 
     /** Commit characters to the transcript model (wrap + scroll), then render. */

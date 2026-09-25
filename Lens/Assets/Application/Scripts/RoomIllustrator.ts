@@ -41,6 +41,18 @@ const IMAGE_MODELS: string[] = [
  *
  * Degrades gracefully: no token / no connectivity -> quiet log, text-only.
  */
+/** Illustration lifecycle hooks (see setLoadingListener). */
+export interface LoadingListener {
+    /** A new room was entered; the old image was unloaded. */
+    onSceneLoadStart?: (room: string) => void;
+    /** An illustration is on screen (texture = the flat image shown). */
+    onImageShown?: (room: string, texture?: Texture) => void;
+    /** No illustration will appear (offline/auth/decode/no image). */
+    onImageUnavailable?: (room: string) => void;
+    /** The Spatial Image depth mesh finished loading. */
+    onSpatialReady?: (room: string) => void;
+}
+
 @component
 export class RoomIllustrator extends BaseScriptComponent {
     @input
@@ -128,33 +140,48 @@ export class RoomIllustrator extends BaseScriptComponent {
      *  - onImageShown     : an illustration is now on screen.
      *  - onImageUnavailable: no illustration will appear (offline/auth/decode).
      */
-    private loadingListener: {
-        onSceneLoadStart?: (room: string) => void;
-        onImageShown?: (room: string) => void;
-        onImageUnavailable?: (room: string) => void;
-    } | null = null;
+    private loadingListeners: LoadingListener[] = [];
 
-    public setLoadingListener(l: {
-        onSceneLoadStart?: (room: string) => void;
-        onImageShown?: (room: string) => void;
-        onImageUnavailable?: (room: string) => void;
-    }): void {
-        this.loadingListener = l;
+    /**
+     * Room whose illustration is generating right now, or null. Late
+     * subscribers use this: the first room's load starts in the same frame
+     * the game rig appears, before they can register.
+     */
+    public get loadingRoom(): string | null {
+        return this.generating ? this.lastRoom : null;
+    }
+
+    /** Subscribe to the illustration lifecycle (RoomViewport, loading UX). */
+    public setLoadingListener(l: LoadingListener): void {
+        this.loadingListeners.push(l);
     }
 
     private fireSceneLoadStart(room: string): void {
-        if (this.loadingListener && this.loadingListener.onSceneLoadStart) {
-            this.loadingListener.onSceneLoadStart(room);
+        for (const l of this.loadingListeners) {
+            if (l.onSceneLoadStart) {
+                l.onSceneLoadStart(room);
+            }
         }
     }
-    private fireImageShown(room: string): void {
-        if (this.loadingListener && this.loadingListener.onImageShown) {
-            this.loadingListener.onImageShown(room);
+    private fireImageShown(room: string, texture?: Texture): void {
+        for (const l of this.loadingListeners) {
+            if (l.onImageShown) {
+                l.onImageShown(room, texture);
+            }
         }
     }
     private fireImageUnavailable(room: string): void {
-        if (this.loadingListener && this.loadingListener.onImageUnavailable) {
-            this.loadingListener.onImageUnavailable(room);
+        for (const l of this.loadingListeners) {
+            if (l.onImageUnavailable) {
+                l.onImageUnavailable(room);
+            }
+        }
+    }
+    private fireSpatialReady(): void {
+        for (const l of this.loadingListeners) {
+            if (l.onSpatialReady) {
+                l.onSpatialReady(this.lastRoom || "");
+            }
         }
     }
 
@@ -216,6 +243,7 @@ export class RoomIllustrator extends BaseScriptComponent {
                         // Keep the flat image enabled as a backstop; the
                         // spatial portal sits in front and covers it.
                         print("RoomIllustrator: spatialized mesh ready");
+                        this.fireSpatialReady();
                     });
                 } catch (e) {
                     print("RoomIllustrator: no onLoaded event (" + e + ")");
@@ -652,6 +680,6 @@ export class RoomIllustrator extends BaseScriptComponent {
                 print("RoomIllustrator: spatialization unavailable (" + e + ")");
             }
         }
-        this.fireImageShown(room);
+        this.fireImageShown(room, texture);
     }
 }

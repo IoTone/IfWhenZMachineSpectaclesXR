@@ -1,0 +1,65 @@
+- !<AssetImportMetadata/e72c79cd-3a2c-4f72-b67c-eb9ef6dc6b23>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 968aeff2-83fb-4662-9a4a-52ffd1445df7
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 968aeff2-83fb-4662-9a4a-52ffd1445df7
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> f7415624-f618-4380-b9ae-902219e8a11c
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/f7415624-f618-4380-b9ae-902219e8a11c>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 70b87e20-638c-4af0-954d-625ae6fa006b
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    captionText: false
+    drawSeconds: false
+    holdSeconds: false
+    illustrationSlot: false
+    illustrator: false
+    labelText: false
+    monoFont: false
+    zmHost: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - illustrator: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      zmHost: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      illustrationSlot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      labelText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      captionText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      monoFont: !<reference.Font> 00000000-0000-0000-0000-000000000000
+      drawSeconds: 1.400000
+      holdSeconds: 1.200000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType illustrator
+    - // @input AssignableType_1 zmHost
+    - // @input SceneObject illustrationSlot
+    - // @input Component.Text labelText
+    - // @input Component.Text captionText
+    - // @input Asset.Font monoFont
+    - // @input float drawSeconds = 1.4
+    - // @input float holdSeconds = 1.2
