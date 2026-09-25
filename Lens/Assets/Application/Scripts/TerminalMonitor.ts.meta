@@ -28,6 +28,7 @@
   ScriptInputsHidden:
     depthOffset: false
     host: false
+    lift: false
     outputText: false
     padding: false
     planeUnit: false
@@ -46,6 +47,7 @@
       outputText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       statusText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       tiltDegrees: !<float> 9.000000
+      lift: 1.500000
       padding: 1.200000
       planeUnit: !<float> 1.000000
       depthOffset: 0.600000
@@ -57,6 +59,7 @@
     - // @input Component.Text outputText
     - // @input Component.Text statusText
     - // @input float tiltDegrees = 9
+    - // @input float lift = 1.5
     - // @input float padding = 1.2
     - // @input float planeUnit = 1
     - // @input float depthOffset = 0.6

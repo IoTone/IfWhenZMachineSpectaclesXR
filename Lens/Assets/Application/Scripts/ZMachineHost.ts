@@ -22,6 +22,7 @@ const tszmModule = require("./tszm/tszm.js");
 import { GAMES, GameEntry, getGame } from "./games/registry";
 import { Theme } from "./Theme";
 import { TypedReveal } from "./TypedReveal";
+import { UxSettings } from "./UxSettings";
 
 @component
 export class ZMachineHost extends BaseScriptComponent {
@@ -132,6 +133,11 @@ export class ZMachineHost extends BaseScriptComponent {
                 this.beginSession();
             }
         });
+        UxSettings.onEffectsChanged((reduced) => {
+            if (reduced) {
+                this.reveal.flush(); // Reduced: never leave text half-typed
+            }
+        });
         const tick = this.createEvent("UpdateEvent");
         tick.bind(() => {
             this.autoAdvanceTick();
@@ -173,9 +179,10 @@ export class ZMachineHost extends BaseScriptComponent {
         if (this.reveal.tick(dt)) {
             return; // writeChars already re-rendered
         }
-        const want = this.host !== null && this.awaitingInput && !this.reveal.busy
-            ? (this.cursorClock = (this.cursorClock + dt * Theme.cursorHz) % 1) < 0.6
-            : false;
+        const waiting = this.host !== null && this.awaitingInput && !this.reveal.busy;
+        // Reduced effects: a solid cursor, no blink.
+        const want = waiting && (UxSettings.effectsReduced ||
+            (this.cursorClock = (this.cursorClock + dt * Theme.cursorHz) % 1) < 0.6);
         if (want !== this.cursorOn) {
             this.cursorOn = want;
             this.renderTranscript();
@@ -507,7 +514,7 @@ export class ZMachineHost extends BaseScriptComponent {
             this.loggedFirstText = true;
             print("ZMachineHost: first output: " + chunk.trim().slice(0, 100));
         }
-        if (this.typedReveal) {
+        if (this.typedReveal && !UxSettings.effectsReduced) {
             this.reveal.push(chunk, cps);
         } else {
             this.writeChars(chunk);

@@ -3,6 +3,7 @@ import { UIKitScrollMenuController } from "LocalJoost/Ui/ScrollWindow/Scripts/UI
 import { ZMachineHost } from "./ZMachineHost";
 import { VoiceInput } from "./VoiceInput";
 import { Narrator } from "./Narrator";
+import { UxSettings } from "./UxSettings";
 import { AppFlow } from "./AppFlow";
 
 /**
@@ -103,7 +104,7 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
      */
     private placeMenu(): void {
         const menuTransform = this.scrollMenuController.getSceneObject().getTransform();
-        const angle = (30 * Math.PI) / 180;
+        const angle = (33 * Math.PI) / 180; // clear of the Terminal Monitor above
         const distance = 50; // cm from the user
         menuTransform.setLocalPosition(new vec3(0, -distance * Math.sin(angle), -distance * Math.cos(angle)));
         menuTransform.setLocalRotation(quat.fromEulerAngles(-angle, 0, 0));
@@ -139,6 +140,7 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
             buttons.push(this.button(d, "verb", d.toLowerCase(), false));
         }
         buttons.push(this.button(this.narrator && this.narrator.isOn ? "Narrate: On" : "Narrate: Off", "meta", "narrate"));
+        buttons.push(this.button(UxSettings.effectsReduced ? "Effects: Reduced" : "Effects: Full", "meta", "effects"));
         buttons.push(this.button("Save", "verb", "save", false));
         buttons.push(this.button("Restore", "verb", "restore", false));
         buttons.push(this.button("New Game", "meta", "newgame"));
@@ -175,6 +177,9 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
                     this.narrator.toggle();
                     this.rebuild(); // refresh the On/Off label
                 }
+            } else if (data.command === "effects") {
+                UxSettings.toggleEffects();
+                this.rebuild(); // refresh the Full/Reduced label
             } else if (data.command === "clear") {
                 this.clearCommand();
             } else if (data.command === "library") {

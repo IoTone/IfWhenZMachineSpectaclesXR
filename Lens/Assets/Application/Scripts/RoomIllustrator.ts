@@ -19,9 +19,11 @@ const RSM_GEMINI = requireAsset(
  * for the session. "gemini:" entries use Gemini's native image output.
  */
 const IMAGE_MODELS: string[] = [
+    // Gemini first: every Imagen name 404s through the proxy (2026-09-22..25),
+    // and trying them first cost ~0.8 s on each session's first image.
+    "gemini:gemini-2.5-flash-image",
     "imagen-4.0-fast-generate-001",
     "imagen-4.0-generate-001",
-    "gemini:gemini-2.5-flash-image",
 ];
 
 /**
@@ -461,13 +463,25 @@ export class RoomIllustrator extends BaseScriptComponent {
                     const parts =
                         (json.candidates && json.candidates[0] && json.candidates[0].content &&
                             json.candidates[0].content.parts) || [];
+                    let said = "";
                     for (const part of parts) {
                         const inline = part.inlineData || part.inline_data;
                         if (inline && inline.data) {
                             resolve(inline.data);
                             return;
                         }
+                        if (part.text) {
+                            said += part.text;
+                        }
                     }
+                    // No image: say why (finish reason, safety block, or a text-only reply).
+                    const cand = json.candidates && json.candidates[0];
+                    const block = json.promptFeedback && json.promptFeedback.blockReason;
+                    print(
+                        "RoomIllustrator: Gemini returned no image (finishReason=" + (cand ? cand.finishReason : "none") +
+                            (block ? ", blockReason=" + block : "") +
+                            (said ? ', text="' + said.slice(0, 140) + '"' : "") + ")"
+                    );
                     resolve(null);
                 } catch (e) {
                     reject(new Error("Failed to parse Gemini image response: " + e));
@@ -531,6 +545,9 @@ export class RoomIllustrator extends BaseScriptComponent {
         print("RoomIllustrator: credentials sync (google token " + (after.length > 0 ? "present" : "MISSING") + ")");
     }
 
+    /** Extra immediate attempts when the model returns no image. */
+    private static readonly EMPTY_RETRIES = 2;
+
     private generate(room: string, key: string): void {
         if (this.authFailed) {
             this.fireImageUnavailable(room); // text-only; let the loading UX clear
@@ -548,7 +565,18 @@ export class RoomIllustrator extends BaseScriptComponent {
         const descSnapshot = this.snapshotDescription(room);
         const seed = this.randomizeSeed ? Math.floor(Math.random() * 1000000) : 0;
         print('RoomIllustrator: generating "' + room + '" (seed ' + seed + ')');
-        this.generateWithFallback(prompt, seed, this.modelIndex)
+        // Gemini sometimes answers an image request with no image; retry a
+        // couple of times right away instead of leaving the room blank until
+        // the player's next command.
+        const attempt = (tries: number): Promise<string | null> =>
+            this.generateWithFallback(prompt, seed + tries, this.modelIndex).then((b64) => {
+                if (!b64 && tries < RoomIllustrator.EMPTY_RETRIES && this.lastRoom === room) {
+                    print("RoomIllustrator: empty image for " + room + ", retry " + (tries + 1));
+                    return attempt(tries + 1);
+                }
+                return b64;
+            });
+        attempt(0)
             .then((b64) => {
                 this.generating = false;
                 this.drainPending();

@@ -29,6 +29,10 @@ export class TerminalMonitor extends BaseScriptComponent {
     @input
     tiltDegrees: number = 9;
 
+    /** Raise the whole monitor group (cm), clear of the command lectern below. */
+    @input
+    lift: number = 1.5;
+
     /** Glass margin (cm) between the text and the rim. */
     @input
     padding: number = 1.2;
@@ -135,14 +139,35 @@ export class TerminalMonitor extends BaseScriptComponent {
             this.diag("inputs/unitSize missing (unitSize=" + this.unitSize + ")");
             return;
         }
+        // Blank lines take vertical space but add no glyphs, so the rendered box
+        // spans only first..last non-empty line. Measure over that span, and
+        // wait for enough lines that one line's ascent/descent doesn't skew it
+        // (9:05 opens with blank lines; measuring by lines.length undersized it).
         const lines = (this.outputText.text || "").split("\n");
         let longest = 0;
-        for (const ln of lines) {
+        let first = -1;
+        let last = -1;
+        for (let i = 0; i < lines.length; i++) {
+            const ln = lines[i].replace(/\s+$/, "");
             longest = Math.max(longest, ln.length);
+            if (ln.length > 0) {
+                if (first < 0) {
+                    first = i;
+                }
+                last = i;
+            }
         }
-        if (lines.length < 4 || longest < 15) {
-            this.diag("text too short (" + lines.length + " lines, longest " + longest + ")");
+        const span = first < 0 ? 0 : last - first + 1;
+        if (span < 8 || longest < 20) {
             return; // not enough text yet for a reliable measurement
+        }
+        // Lens doesn't reserve space for blank lines at the anchored edge, so
+        // only measure when the anchored line has glyphs: then the glyph box
+        // edge IS that line's edge (guessing blank-line offsets put the rim
+        // four lines too high on 9:05).
+        const bottomAligned = this.outputText.verticalAlignment === VerticalAlignment.Bottom;
+        if (bottomAligned ? last !== lines.length - 1 : first !== 0) {
+            return;
         }
         const box = this.boxInGroup(this.outputText);
         if (!box) {
@@ -157,7 +182,7 @@ export class TerminalMonitor extends BaseScriptComponent {
             return;
         }
         const charW = (box[1].x - box[0].x) / longest;
-        const lineH = (box[1].y - box[0].y) / lines.length;
+        const lineH = (box[1].y - box[0].y) / span;
         const cols = this.host.wrapColumn > 0 ? this.host.wrapColumn : longest;
         const w = cols * charW;
         const h = this.host.maxLines * lineH;
@@ -166,7 +191,7 @@ export class TerminalMonitor extends BaseScriptComponent {
         const left = this.outputText.horizontalAlignment === HorizontalAlignment.Right ? box[1].x - w : box[0].x;
         let top: number;
         let bottom: number;
-        if (this.outputText.verticalAlignment === VerticalAlignment.Bottom) {
+        if (bottomAligned) {
             bottom = box[0].y;
             top = bottom + h;
         } else {
@@ -209,7 +234,7 @@ export class TerminalMonitor extends BaseScriptComponent {
     /** Yaw the monitor group (this object's parent) about the frame centre. */
     private applyTilt(pivot: vec3): void {
         const group = this.getSceneObject().getParent();
-        if (!group || this.tiltDegrees === 0) {
+        if (!group) {
             return;
         }
         const gt = group.getTransform();
@@ -220,7 +245,7 @@ export class TerminalMonitor extends BaseScriptComponent {
         // P = base + c - R*c keeps the pivot fixed while the group rotates.
         const rc = r.multiplyVec3(pivot);
         gt.setLocalRotation(r);
-        gt.setLocalPosition(this.baseParentPos.add(pivot).sub(rc));
+        gt.setLocalPosition(this.baseParentPos.add(pivot).sub(rc).add(new vec3(0, this.lift, 0)));
     }
 
     /** New game / library return: re-measure on the next text. */
