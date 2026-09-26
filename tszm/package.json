@@ -12,7 +12,8 @@
     "test:bundle": "npm run build && cd test && TSZM_BUNDLE=1 node run.js games/czech.z5",
     "test:host": "npm run build && cd test && node run-host.js",
     "test:library": "npm run build && node test/validate-library.js",
-    "embed:minizork": "node tools/embed-game.js test/games/minizork.z3 '../Lens/Assets/Application/Scripts/games/MiniZork.js' 'Mini-Zork I'"
+    "embed:minizork": "node tools/embed-game.js test/games/minizork.z3 '../Lens/Assets/Application/Scripts/games/MiniZork.js' 'Mini-Zork I'",
+    "test:dictionary": "npm run build && node test/dictionary-report.js"
   },
   "devDependencies": {
     "esbuild": "^0.28.1"

@@ -4223,6 +4223,50 @@ var require_host_core = __commonJS({
       }
       return 0;
     }
+    function getDictionary(zm) {
+      try {
+        const mem = zm.memory;
+        const header = zm.header || zm.getHeader();
+        const addr = header.dictionaryAddress;
+        if (!mem || !addr) {
+          return null;
+        }
+        const stamp = String.fromCharCode(mem.readUInt8(60), mem.readUInt8(61), mem.readUInt8(62), mem.readUInt8(63));
+        const inform = /^[5-7]\.\d\d$/.test(stamp);
+        const nSep = mem.readUInt8(addr);
+        const entryLength = mem.readUInt8(addr + nSep + 1);
+        let count = mem.readInt16BE ? mem.readInt16BE(addr + nSep + 2) : mem.readUInt16BE(addr + nSep + 2);
+        count = Math.abs(count);
+        const first = addr + nSep + 4;
+        const textBytes = header.version <= 3 ? 4 : 6;
+        const maxLetters = header.version <= 3 ? 6 : 9;
+        const words = [];
+        const savedPc = zm.pc;
+        try {
+          for (let i = 0; i < count; i++) {
+            const e = first + i * entryLength;
+            zm.pc = e;
+            const word = zm.decodeZSCII(false).trim();
+            const f = entryLength > textBytes ? mem.readUInt8(e + textBytes) : 0;
+            if (!word) {
+              continue;
+            }
+            const display = /^[a-z][a-z'-]+$/.test(word);
+            const truncated = word.length >= maxLetters;
+            if (inform) {
+              words.push({ word, verb: !!(f & 1), meta: !!(f & 2), noun: !!(f & 128), prep: !!(f & 8), dir: false, display, truncated });
+            } else {
+              words.push({ word, verb: !!(f & 64), meta: false, noun: !!(f & 128), prep: !!(f & 8), dir: !!(f & 16), display, truncated });
+            }
+          }
+        } finally {
+          zm.pc = savedPc;
+        }
+        return { format: inform ? "inform " + stamp : "zil-flags", words };
+      } catch (err) {
+        return null;
+      }
+    }
     function getSceneContext(zm, visibleText, statusLine) {
       try {
         if (!zm.memory || !zm.header) return null;
@@ -4397,6 +4441,7 @@ var require_host_core = __commonJS({
     };
     function runGame(opts) {
       const { ZMachine: ZMachine2, gameBytes, device, onQuit, onError } = opts;
+      let dictionaryCache;
       const yieldEvery = opts.yieldEvery || 2e4;
       const yieldFn = opts.yieldFn || (() => Promise.resolve());
       const zm = new ZMachine2(gameBytes, device);
@@ -4438,10 +4483,17 @@ var require_host_core = __commonJS({
           running = false;
         },
         /** On-demand scene snapshot (also delivered via opts.onPrompt). */
-        sceneContext: () => getSceneContext(zm, device.seenText, device.lastStatus)
+        sceneContext: () => getSceneContext(zm, device.seenText, device.lastStatus),
+        /** The story's vocabulary (cached: the dictionary is static memory). */
+        dictionary: () => {
+          if (dictionaryCache === void 0) {
+            dictionaryCache = getDictionary(zm);
+          }
+          return dictionaryCache;
+        }
       };
     }
-    module2.exports = { Vt100Filter, EmbeddedZDevice, runGame, getSceneContext };
+    module2.exports = { Vt100Filter, EmbeddedZDevice, runGame, getSceneContext, getDictionary };
   }
 });
 

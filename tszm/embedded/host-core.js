@@ -250,6 +250,73 @@ function findObjectByName(zm, wanted) {
     return 0;
 }
 
+/**
+ * The story's own vocabulary: every word its parser accepts, classified.
+ * Feeds the Lens Command Deck (UX2 §11.3), so it only offers verbs this
+ * story understands.
+ *
+ * Returns { format, words: [{ word, verb, meta, noun, prep, dir, display,
+ * truncated }] } or null. `display` is false for debug/internal entries
+ * (",burnber", "#comm", "$ve", ".=") and single letters; `truncated` marks
+ * words cut to the dictionary's 6 (v3) / 9 (v5+) letters ("activa" = activate).
+ *
+ * The dictionary's first data byte means different things per compiler:
+ *  - Inform (6.x, and Inform 7 via I6): #dict_par1 flags
+ *      1 = verb, 2 = meta verb (save/score...), 4 = plural,
+ *      8 = preposition, 128 = noun
+ *  - Infocom (ZIL): parts-of-speech flags
+ *      0x80 = object, 0x40 = verb, 0x20 = adjective, 0x10 = direction,
+ *      0x08 = preposition, 0x04 = buzz word
+ * Inform 6 writes its compiler version at header 0x3C ("6.31"). Infocom files
+ * leave it zero - and so does Inform 5 (Christminster). Zero-stamp stories
+ * use the ZIL rule: Inform 5 marks verbs with bit 0 AND bit 6, so verbs are
+ * still found; only Inform's separate meta flag is lost for them.
+ */
+function getDictionary(zm) {
+    try {
+        const mem = zm.memory;
+        const header = zm.header || zm.getHeader();
+        const addr = header.dictionaryAddress;
+        if (!mem || !addr) {
+            return null;
+        }
+        const stamp = String.fromCharCode(mem.readUInt8(0x3c), mem.readUInt8(0x3d), mem.readUInt8(0x3e), mem.readUInt8(0x3f));
+        const inform = /^[5-7]\.\d\d$/.test(stamp);
+        const nSep = mem.readUInt8(addr);
+        const entryLength = mem.readUInt8(addr + nSep + 1);
+        let count = mem.readInt16BE ? mem.readInt16BE(addr + nSep + 2) : mem.readUInt16BE(addr + nSep + 2);
+        count = Math.abs(count); // negative = unsorted dictionary (v5+), same layout
+        const first = addr + nSep + 4;
+        const textBytes = header.version <= 3 ? 4 : 6;
+        const maxLetters = header.version <= 3 ? 6 : 9;
+        const words = [];
+        const savedPc = zm.pc;
+        try {
+            for (let i = 0; i < count; i++) {
+                const e = first + i * entryLength;
+                zm.pc = e;
+                const word = zm.decodeZSCII(false).trim();
+                const f = entryLength > textBytes ? mem.readUInt8(e + textBytes) : 0;
+                if (!word) {
+                    continue;
+                }
+                const display = /^[a-z][a-z'-]+$/.test(word);
+                const truncated = word.length >= maxLetters;
+                if (inform) {
+                    words.push({ word, verb: !!(f & 1), meta: !!(f & 2), noun: !!(f & 128), prep: !!(f & 8), dir: false, display, truncated });
+                } else {
+                    words.push({ word, verb: !!(f & 0x40), meta: false, noun: !!(f & 0x80), prep: !!(f & 0x08), dir: !!(f & 0x10), display, truncated });
+                }
+            }
+        } finally {
+            zm.pc = savedPc;
+        }
+        return { format: inform ? "inform " + stamp : "zil-flags", words };
+    } catch (err) {
+        return null; // never let vocabulary extraction break the game
+    }
+}
+
 function getSceneContext(zm, visibleText, statusLine) {
     try {
         if (!zm.memory || !zm.header) return null;
@@ -499,6 +566,7 @@ class EmbeddedZDevice {
  */
 function runGame(opts) {
     const { ZMachine, gameBytes, device, onQuit, onError } = opts;
+    let dictionaryCache; // undefined until first asked for
     const yieldEvery = opts.yieldEvery || 20000;
     const yieldFn = opts.yieldFn || (() => Promise.resolve());
     const zm = new ZMachine(gameBytes, device);
@@ -546,7 +614,14 @@ function runGame(opts) {
         },
         /** On-demand scene snapshot (also delivered via opts.onPrompt). */
         sceneContext: () => getSceneContext(zm, device.seenText, device.lastStatus),
+        /** The story's vocabulary (cached: the dictionary is static memory). */
+        dictionary: () => {
+            if (dictionaryCache === undefined) {
+                dictionaryCache = getDictionary(zm);
+            }
+            return dictionaryCache;
+        },
     };
 }
 
-module.exports = { Vt100Filter, EmbeddedZDevice, runGame, getSceneContext };
+module.exports = { Vt100Filter, EmbeddedZDevice, runGame, getSceneContext, getDictionary };
