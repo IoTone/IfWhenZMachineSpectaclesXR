@@ -4785,6 +4785,7 @@
   ScriptAsset: !<reference> 9d990a8c-07c4-42af-8371-ba2998322a2e
   ScriptInputsDefault:
     maxLines: true
+    historyLines: true
     wrapColumn: true
     autoDemo: true
     rigDistance: true
@@ -4799,6 +4800,7 @@
       outputText: !<reference.Text> 2914f910-7281-4002-862f-afcc1d205447
       statusText: !<reference.Text> 7eef01d7-dffa-4db6-825f-6af9db46358b
       maxLines: !<float> 16.000000
+      historyLines: !<float> 400.000000
       wrapColumn: !<float> 42.000000
       autoDemo: false
       illustration: !<reference.SceneObject> 2546fde6-2599-42d9-a107-c6e19b65c56a

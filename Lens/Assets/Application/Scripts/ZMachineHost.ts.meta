@@ -31,6 +31,7 @@
     autoDemo: false
     autoStart: false
     commandSound: false
+    historyLines: false
     illustration: false
     maxLines: false
     outputText: false
@@ -52,6 +53,7 @@
     - outputText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       statusText: !<reference.Text> 00000000-0000-0000-0000-000000000000
       maxLines: !<float> 16.000000
+      historyLines: !<float> 400.000000
       wrapColumn: !<float> 42.000000
       autoDemo: false
       illustration: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
@@ -70,6 +72,7 @@
     - // @input Component.Text outputText
     - // @input Component.Text statusText
     - // @input float maxLines = 16
+    - // @input float historyLines = 400
     - // @input float wrapColumn = 42
     - // @input bool autoDemo
     - // @input SceneObject illustration

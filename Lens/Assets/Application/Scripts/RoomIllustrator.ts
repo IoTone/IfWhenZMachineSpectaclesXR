@@ -644,6 +644,9 @@ export class RoomIllustrator extends BaseScriptComponent {
      * 100 / offset -200 / depth 100) at its original spot above the rig.
      * OFF: a portal sized to the Room Viewport, sitting on it.
      */
+    /** True after contained mode resized the portal (immersive must restore it). */
+    private spatialCustomized: boolean = false;
+
     private applySpatialMode(): void {
         if (!this.spatialFrame) {
             return;
@@ -654,14 +657,21 @@ export class RoomIllustrator extends BaseScriptComponent {
                 const t = this.spatialFrame.getSceneObject().getTransform();
                 t.setLocalRotation(quat.quatIdentity());
                 t.setLocalPosition(new vec3(-6, 19, 2));
-                frame.setMaterialProperties(100, -200, 100);
-                print("RoomIllustrator: spatial portal immersive (native backdrop)");
+                // The component starts at native size; only restore it after a
+                // contained session changed it (calling this before the Spatial
+                // Image finishes initializing throws on its material).
+                if (this.spatialCustomized) {
+                    frame.setMaterialProperties(100, -200, 100);
+                    this.spatialCustomized = false;
+                    print("RoomIllustrator: spatial portal immersive (native backdrop)");
+                }
             } else {
                 this.placeSpatial();
                 const h = this.spatialHeight > 0 ? this.spatialHeight : 12.5;
                 const offset = this.spatialOffset !== 0 ? this.spatialOffset : (-200 * h) / 100;
                 const depth = this.spatialDepth > 0 ? this.spatialDepth : h;
                 frame.setMaterialProperties(h, offset, depth);
+                this.spatialCustomized = true;
                 print("RoomIllustrator: spatial portal in viewport h=" + h + " off=" + offset + " d=" + depth);
             }
         } catch (e) {

@@ -189,15 +189,91 @@ export class Narrator extends BaseScriptComponent {
         if (clean.length === 0) {
             return;
         }
-        if (clean.length > this.maxChars) {
-            // Truncate at a sentence boundary where possible.
-            const cut = clean.lastIndexOf(".", this.maxChars);
-            clean = clean.slice(0, cut > this.maxChars / 2 ? cut + 1 : this.maxChars);
+        // Long turns used to be truncated at maxChars, silently dropping
+        // everything after the first paragraph. Speak them as a queue of
+        // sentence-bounded chunks instead (each within the TTS size limit).
+        this.speakQueue(this.chunkForSpeech(clean));
+    }
+
+    /** Split at sentence ends (then spaces) into pieces of <= maxChars. */
+    private chunkForSpeech(text: string): string[] {
+        const max = Math.max(60, this.maxChars);
+        const out: string[] = [];
+        let rest = text.trim();
+        while (rest.length > max) {
+            let cut = -1;
+            for (const mark of [". ", "! ", "? ", "\n"]) {
+                cut = Math.max(cut, rest.lastIndexOf(mark, max));
+            }
+            if (cut < max / 3) {
+                cut = rest.lastIndexOf(" ", max);
+            }
+            if (cut <= 0) {
+                cut = max;
+            }
+            out.push(rest.slice(0, cut + 1).trim());
+            rest = rest.slice(cut + 1).trim();
         }
-        this.speak(clean);
+        if (rest.length > 0) {
+            out.push(rest);
+        }
+        return out;
+    }
+
+    // ---- chunk queue: play in order, synthesizing the next while one plays
+    private queue: string[] = [];
+    private queueGen: number = 0;
+    private prefetched: AudioTrackAsset | null = null;
+
+    private speakQueue(chunks: string[]): void {
+        this.stopPlayback(); // a new turn interrupts (and cancels) the old one
+        this.queue = chunks;
+        this.synthNext(this.queueGen);
+    }
+
+    /** Synthesize the next queued chunk; play it now if nothing is playing. */
+    private synthNext(gen: number): void {
+        const text = this.queue.shift();
+        if (text === undefined) {
+            return;
+        }
+        this.synthesize(text, (track) => {
+            if (gen !== this.queueGen) {
+                return; // superseded by a newer turn or narration off
+            }
+            if (this.audio.isPlaying()) {
+                this.prefetched = track; // queued behind the current chunk
+            } else {
+                this.play(track, gen);
+            }
+        });
+    }
+
+    private play(track: AudioTrackAsset, gen: number): void {
+        this.audio.audioTrack = track;
+        this.audio.setOnFinish(() => {
+            if (gen !== this.queueGen) {
+                return;
+            }
+            if (this.prefetched) {
+                const next = this.prefetched;
+                this.prefetched = null;
+                this.play(next, gen);
+            }
+            // else: the next chunk is still synthesizing and plays on arrival
+        });
+        this.audio.play(1);
+        if (this.narrationStartListener) {
+            this.narrationStartListener();
+        }
+        this.synthNext(gen); // prefetch the chunk after this one
     }
 
     private stopPlayback(): void {
+        // cancel any queued chunks (their callbacks check the generation)
+        this.queueGen++;
+        this.queue = [];
+        this.prefetched = null;
         try {
             if (this.audio.isPlaying()) {
                 this.audio.stop(false);
@@ -222,8 +298,7 @@ export class Narrator extends BaseScriptComponent {
         return options;
     }
 
-    private speak(text: string): void {
-        this.stopPlayback();
+    private synthesize(text: string, onTrack: (track: AudioTrackAsset) => void): void {
         try {
             const options = this.buildOptions();
             this.tts.synthesize(
@@ -233,11 +308,7 @@ export class Narrator extends BaseScriptComponent {
                     // A successful real synthesis also proves the pipeline is warm
                     // (covers the case where narration beats prewarm's callback).
                     this.setWarmState("warm");
-                    this.audio.audioTrack = audioTrack;
-                    this.audio.play(1);
-                    if (this.narrationStartListener) {
-                        this.narrationStartListener();
-                    }
+                    onTrack(audioTrack);
                 },
                 (error: any, description: string) => {
                     print("Narrator TTS error: " + error + " - " + description);

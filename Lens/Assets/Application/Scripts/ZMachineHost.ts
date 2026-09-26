@@ -23,6 +23,7 @@ import { GAMES, GameEntry, getGame } from "./games/registry";
 import { Theme } from "./Theme";
 import { TypedReveal } from "./TypedReveal";
 import { UxSettings } from "./UxSettings";
+import { CrtScroll } from "./CrtScroll";
 
 @component
 export class ZMachineHost extends BaseScriptComponent {
@@ -33,9 +34,13 @@ export class ZMachineHost extends BaseScriptComponent {
     @allowUndefined
     statusText: Text;
 
-    /** Rolling transcript window, in lines. */
+    /** Visible transcript window, in lines. */
     @input
     maxLines: number = 16;
+
+    /** Scrollback kept (wrapped lines); the window scrolls over this. */
+    @input
+    historyLines: number = 400;
 
     /** Soft-wrap transcript lines at this many characters (0 = off). */
     @input
@@ -110,6 +115,11 @@ export class ZMachineHost extends BaseScriptComponent {
     private reveal: TypedReveal = new TypedReveal((chars) => this.writeChars(chars));
     private cursorClock: number = 0;
     private cursorOn: boolean = false;
+    // scrollback + paging (docs/UX2-proposal.md §11.2)
+    private scroll: CrtScroll = new CrtScroll(16);
+    private pageStart: number = 0;
+    private morePaused: boolean = false;
+    private version: number = 0;
     private demoCommands: string[] = [
         "open mailbox",
         "read leaflet",
@@ -126,6 +136,7 @@ export class ZMachineHost extends BaseScriptComponent {
     ];
 
     onAwake() {
+        this.scroll.visible = this.maxLines; // @input values are set by now
         this.createEvent("OnStartEvent").bind(() => {
             this.applyLayout();
             this.watchConnectivity();
@@ -176,7 +187,15 @@ export class ZMachineHost extends BaseScriptComponent {
     private revealTick(): void {
         // @ts-ignore - getDeltaTime is a Lens runtime global
         const dt = getDeltaTime();
+        if (this.morePaused) {
+            return; // waiting at "— MORE —" for a tap / "more"
+        }
         if (this.reveal.tick(dt)) {
+            // A turn taller than the screen pauses at a page boundary.
+            if (this.reveal.busy && this.lines.length - this.pageStart >= this.maxLines - 1) {
+                this.morePaused = true;
+                this.renderTranscript();
+            }
             return; // writeChars already re-rendered
         }
         const waiting = this.host !== null && this.awaitingInput && !this.reveal.busy;
@@ -255,7 +274,14 @@ export class ZMachineHost extends BaseScriptComponent {
     /** Public API: send a player command to the game. */
     public submitCommand(cmd: string): void {
         if (this.host) {
+            // "more" while paged continues the page instead of going to the game
+            if (this.morePaused && /^\s*(more|continue)\s*$/i.test(cmd)) {
+                this.continueMore();
+                return;
+            }
+            this.morePaused = false;
             this.reveal.flush(); // the player acted: show everything first
+            this.scroll.toBottom();
             this.host.device.pushInput(cmd);
             this.confirmCommand(cmd);
         }
@@ -388,6 +414,9 @@ export class ZMachineHost extends BaseScriptComponent {
         this.introCharWait = 0;
         this.reveal.clear();
         this.cursorOn = false;
+        this.pageStart = 0;
+        this.morePaused = false;
+        this.scroll.toBottom();
         if (this.statusText) {
             this.statusText.text = "";
         }
@@ -538,6 +567,8 @@ export class ZMachineHost extends BaseScriptComponent {
      */
     private echoCommand(cmd: string): void {
         this.reveal.flush();
+        this.morePaused = false;
+        this.pageStart = this.lines.length - 1; // a new turn starts a new page
         const tail = this.lines[this.lines.length - 1].trim();
         this.appendText((tail === ">" ? " " : "> ") + cmd + "\n", Theme.echoCps);
     }
@@ -561,9 +592,45 @@ export class ZMachineHost extends BaseScriptComponent {
             }
             this.lines[this.lines.length - 1] = line;
         }
-        if (this.lines.length > this.maxLines) {
-            this.lines = this.lines.slice(this.lines.length - this.maxLines);
+        const cap = Math.max(this.maxLines, this.historyLines);
+        if (this.lines.length > cap) {
+            const removed = this.lines.length - cap;
+            this.lines = this.lines.slice(removed);
+            this.pageStart = Math.max(0, this.pageStart - removed);
+            this.scroll.shiftUp(removed);
         }
+        this.renderTranscript();
+    }
+
+    // ------------------------------------------------ scrollback API
+    /** Scroll model for the transcript (TerminalMonitor drives it). */
+    public get transcriptScroll(): CrtScroll {
+        return this.scroll;
+    }
+
+    /** Bumps whenever the transcript view changes (for the scrollbar). */
+    public get transcriptVersion(): number {
+        return this.version;
+    }
+
+    public get isMorePaused(): boolean {
+        return this.morePaused;
+    }
+
+    /** Continue past "— MORE —". False if nothing was paused. */
+    public continueMore(): boolean {
+        if (!this.morePaused) {
+            return false;
+        }
+        this.morePaused = false;
+        this.pageStart = this.lines.length - 1;
+        this.scroll.toBottom();
+        this.renderTranscript();
+        return true;
+    }
+
+    /** Re-render after the scroll offset changed. */
+    public refreshTranscript(): void {
         this.renderTranscript();
     }
 
@@ -572,8 +639,21 @@ export class ZMachineHost extends BaseScriptComponent {
             // The cursor slot is always occupied (glyph or a same-advance space in
             // the monospace font), so blinking never changes the text extents —
             // a changing extent makes the Text rescale the whole block.
-            const slot = this.cursorOn ? Theme.cursorGlyph : this.awaitingInput ? " " : "";
-            this.outputText.text = this.lines.join("\n") + slot;
+            this.scroll.setTotal(this.lines.length);
+            this.version++;
+            if (this.morePaused) {
+                // the page so far (complete lines only - a half-typed next
+                // line waits for the continue), and a MORE line below it
+                const done = this.lines.length - 1; // the last line is empty or half-typed
+                const page = this.lines.slice(Math.max(0, done - (this.maxLines - 1)), done);
+                this.outputText.text = page.join("\n") + "\n[ — MORE — ]";
+                return;
+            }
+            const start = this.scroll.offset;
+            const view = this.lines.slice(start, start + this.maxLines);
+            // cursor only at the live bottom; scrolled back = pure history
+            const slot = !this.scroll.atBottom ? "" : this.cursorOn ? Theme.cursorGlyph : this.awaitingInput ? " " : "";
+            this.outputText.text = view.join("\n") + slot;
         }
     }
 
