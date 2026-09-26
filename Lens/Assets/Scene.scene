@@ -985,8 +985,6 @@
   ScriptAsset: !<reference> 37976aca-6847-44c8-88d9-5edb6aadbbf2
   ScriptInputsDefault:
     openAIToken: true
-    googleToken: true
-    snapToken: true
     enableLogging: true
     enableLoggingLifecycle: true
   ScriptTypesDefault:
@@ -994,8 +992,8 @@
   ScriptInputs:
     "":
       openAIToken: "[INSERT OPENAI TOKEN HERE]"
-      googleToken: "[INSERT GOOGLE TOKEN HERE]"
-      snapToken: "[INSERT SNAP TOKEN HERE]"
+      googleToken: 3db45e26-bfc1-4de6-8b14-fcba89247e5c
+      snapToken: 4f302a04-8f35-491e-970f-5b4d24e7ac9f
       enableLogging: false
       enableLoggingLifecycle: false
   ScriptTypes:
@@ -1228,7 +1226,7 @@
   PrefabRemaps:
     []
   Name: ScrollButtonDataLoader
-  Enabled: true
+  Enabled: false
   ScriptAsset: !<reference> bf05b653-8b6b-4349-b61b-518f19fe2bc5
   ScriptInputsDefault:
     {}
@@ -2040,6 +2038,21 @@
   ScriptTypes:
     "":
       {}
+- !<SceneObject/428c0f3e-bde0-47a7-bc8e-8c1c1448e4ea>
+  PrefabRemaps:
+    []
+  Name: CommandDeck
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> 71f8bc7e-c82c-4f82-bf39-c59fe6cbb9c2
+  Components:
+    - !<own> e8b09a36-dae4-45fa-8543-575cc913a48c
 - !<SceneObject/440d9903-0516-47eb-a79f-3764e57df5b3>
   PrefabRemaps:
     []
@@ -3081,6 +3094,21 @@
     []
   Components:
     - !<own> 6cac85a8-f502-4056-881b-db428723681c
+- !<SceneObject/71f8bc7e-c82c-4f82-bf39-c59fe6cbb9c2>
+  PrefabRemaps:
+    []
+  Name: DeckBezel
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 32.000000, y: 32.000000, z: 32.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> e92488b5-3b28-4175-8637-f81b63d023d3
 - !<SceneObject/73b7e3d8-b7f3-4c24-9f65-4ecfc6871b0d>
   PrefabRemaps:
     []
@@ -3348,6 +3376,7 @@
   Children:
     - !<own> bf80c728-14c2-4356-bb4c-8d794498688e
     - !<own> 60cd5f83-9b89-4249-8726-1711c77168a9
+    - !<own> 428c0f3e-bde0-47a7-bc8e-8c1c1448e4ea
   Components:
     []
 - !<SceneObject/7db11996-f25b-413e-b374-c4db27bbfc7e>
@@ -3813,7 +3842,7 @@
       narrator: !<MappingBased.AssignableType_4> ca4675a9-cf35-4dac-b471-2f8bfc00b7f8
       minSplashSeconds: !<float> 10.000000
       warmTimeoutSeconds: !<float> 8.000000
-      gameRigNames: "ScrollMenu,MicProp,Output,Status,RoomIllustrator"
+      gameRigNames: "CommandDeck,MicProp,Output,Status,RoomIllustrator"
       hideOnlyRigNames: "SceneIllustration,SpatialFrame"
   ScriptTypes:
     "":
@@ -4896,7 +4925,7 @@
     - e04bc8a4-7218-4cf4-94a1-a9f7d57dda94: 1d40fd68-db48-48e9-782a-92ad19786295
     - ff6171c5-4ac0-4fac-b83e-ed19106d6fa6: ee0b90f7-1c93-4ace-8468-266fba13cc9f
   Name: ScrollMenu
-  Enabled: true
+  Enabled: false
   Layers: 1
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: 1000.000000, z: 0.000000}
@@ -5971,6 +6000,51 @@
     []
   Components:
     []
+- !<ScriptComponent/e8b09a36-dae4-45fa-8543-575cc913a48c>
+  PrefabRemaps:
+    []
+  Name: CommandDeck
+  Enabled: true
+  ScriptAsset: !<reference> aa137938-41fb-4895-bb2f-d2db0fb9b722
+  ScriptInputsDefault:
+    angleDegrees: true
+    distance: true
+    warp: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      zmHost: !<MappingBased.AssignableType> bb80fc6f-ec38-47e7-a6a6-9ea76541b068
+      narrator: !<MappingBased.AssignableType_1> ca4675a9-cf35-4dac-b471-2f8bfc00b7f8
+      appFlow: !<MappingBased.AssignableType_2> 90b855ca-e72c-47ca-8aae-86e88a67242a
+      monoFont: !<reference.Font> 0f3de735-eadc-4f75-a1af-2a4c1c32c923
+      bezelImage: !<reference.Image> e92488b5-3b28-4175-8637-f81b63d023d3
+      legacyMenu: !<reference.SceneObject> bf80c728-14c2-4356-bb4c-8d794498688e
+      angleDegrees: !<float> 33.000000
+      distance: !<float> 50.000000
+      warp: 0.050000
+  ScriptTypes:
+    "":
+      {}
+- !<Image/e92488b5-3b28-4175-8637-f81b63d023d3>
+  PrefabRemaps:
+    []
+  Name: Image
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Fit
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> 6d311f68-e0c1-4fad-8c54-4c06f99022bd
+  FlipX: false
+  FlipY: false
+  RotationAngle: 0
+  Pivot: {x: 0.000000, y: 0.000000}
+  ExtentsTarget: !<reference> 00000000-0000-0000-0000-000000000000
 - !<SceneObject/ead2eb82-4ca6-4091-9818-ba6179b6ae6f>
   PrefabRemaps:
     []
