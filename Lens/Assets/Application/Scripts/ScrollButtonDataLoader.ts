@@ -157,6 +157,12 @@ export class ScrollButtonDataLoader extends BaseScriptComponent {
             this.updatePreview();
             return;
         }
+        // Superseded by the Command Deck (UX2 §11.3): when the old SIK menu
+        // is switched off, never build into it (instantiate under a disabled
+        // menu throws and took AppFlow's startup down with it).
+        if (!this.scrollMenuController.getSceneObject().isEnabledInHierarchy || !this.enabled) {
+            return;
+        }
         this.lastSignature = signature;
         this.scrollMenuController.clearButtons();
         this.scrollMenuController.createButtons(buttons);

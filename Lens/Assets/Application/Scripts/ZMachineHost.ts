@@ -280,6 +280,7 @@ export class ZMachineHost extends BaseScriptComponent {
                 return;
             }
             this.morePaused = false;
+            this.composeLine = "";
             this.reveal.flush(); // the player acted: show everything first
             this.scroll.toBottom();
             this.host.device.pushInput(cmd);
@@ -634,6 +635,28 @@ export class ZMachineHost extends BaseScriptComponent {
         this.renderTranscript();
     }
 
+    /** The story's vocabulary (tszm host-core getDictionary), or null. */
+    public dictionary(): any {
+        try {
+            return this.host && this.host.dictionary ? this.host.dictionary() : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    private composeLine: string = "";
+
+    /**
+     * Mirror a command being composed on the Command Deck after the live
+     * prompt, so it forms where the game will answer.
+     */
+    public setComposeLine(s: string): void {
+        if (s !== this.composeLine) {
+            this.composeLine = s;
+            this.renderTranscript();
+        }
+    }
+
     private renderTranscript(): void {
         if (this.outputText) {
             // The cursor slot is always occupied (glyph or a same-advance space in
@@ -653,7 +676,8 @@ export class ZMachineHost extends BaseScriptComponent {
             const view = this.lines.slice(start, start + this.maxLines);
             // cursor only at the live bottom; scrolled back = pure history
             const slot = !this.scroll.atBottom ? "" : this.cursorOn ? Theme.cursorGlyph : this.awaitingInput ? " " : "";
-            this.outputText.text = view.join("\n") + slot;
+            const compose = this.scroll.atBottom && this.awaitingInput && this.composeLine ? " " + this.composeLine : "";
+            this.outputText.text = view.join("\n") + compose + slot;
         }
     }
 

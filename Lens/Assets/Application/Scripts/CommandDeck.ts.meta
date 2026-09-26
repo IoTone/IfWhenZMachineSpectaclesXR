@@ -1,0 +1,68 @@
+- !<AssetImportMetadata/2b0ae6ad-c042-4579-9f00-a62601699535>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> aa137938-41fb-4895-bb2f-d2db0fb9b722
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> aa137938-41fb-4895-bb2f-d2db0fb9b722
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> e4a4a073-41fa-4d30-a882-3105d485f1b5
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/e4a4a073-41fa-4d30-a882-3105d485f1b5>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: fec32573-e72b-4ce9-8238-900f9daf4564
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    angleDegrees: false
+    appFlow: false
+    bezelImage: false
+    distance: false
+    legacyMenu: false
+    monoFont: false
+    narrator: false
+    warp: false
+    zmHost: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - zmHost: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      narrator: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      appFlow: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      monoFont: !<reference.Font> 00000000-0000-0000-0000-000000000000
+      bezelImage: !<reference.Image> 00000000-0000-0000-0000-000000000000
+      legacyMenu: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      angleDegrees: !<float> 33.000000
+      distance: !<float> 50.000000
+      warp: 0.050000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType zmHost
+    - // @input AssignableType_1 narrator
+    - // @input AssignableType_2 appFlow
+    - // @input Asset.Font monoFont
+    - // @input Component.Image bezelImage
+    - // @input SceneObject legacyMenu
+    - // @input float angleDegrees = 33
+    - // @input float distance = 50
+    - // @input float warp = 0.05
