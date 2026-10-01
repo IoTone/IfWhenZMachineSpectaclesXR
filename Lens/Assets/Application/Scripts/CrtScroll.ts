@@ -13,7 +13,15 @@ export class CrtScroll {
     private dragFrom: number = 0;
     private dragOffset: number = 0;
 
-    constructor(public visible: number) {}
+    /**
+     * @param visible lines in the window
+     * @param autoFollow true = stick to the bottom as content grows (a
+     *   transcript); false = start at the top and only move when scrolled
+     *   (a menu, like the Command Deck).
+     */
+    constructor(public visible: number, private readonly autoFollow: boolean = true) {
+        this._follow = autoFollow;
+    }
 
     get total(): number {
         return this._total;
@@ -62,7 +70,7 @@ export class CrtScroll {
         const clamped = Math.max(0, Math.min(this.maxOffset, Math.round(offset)));
         const changed = clamped !== this._offset;
         this._offset = clamped;
-        this._follow = clamped >= this.maxOffset;
+        this._follow = this.autoFollow && clamped >= this.maxOffset;
         return changed;
     }
 
@@ -75,8 +83,13 @@ export class CrtScroll {
     }
 
     toBottom(): void {
-        this._follow = true;
+        this._follow = this.autoFollow;
         this._offset = this.maxOffset;
+    }
+
+    toTop(): void {
+        this._follow = false;
+        this._offset = 0;
     }
 
     /** Grab-the-content drag: y in the same units as lineHeight, up = positive. */

@@ -112,7 +112,8 @@ export class CommandDeck extends BaseScriptComponent {
     private sepText: Text | null = null;
     private barText: Text | null = null;
     private gutterText: Text | null = null;
-    private scroll: CrtScroll = new CrtScroll(CommandDeck.ROWS);
+    // a menu, not a transcript: start at the top (the compass), never follow the bottom
+    private scroll: CrtScroll = new CrtScroll(CommandDeck.ROWS, false);
     private lines: DeckLine[] = [];
     private cmdToks: Tok[] = [];
     private ctx: any = null;
@@ -142,6 +143,7 @@ export class CommandDeck extends BaseScriptComponent {
                     this.open = null;
                     this.recent = [];
                     this.verbsKnown = null; // a new story: new vocabulary
+                    this.scroll.toTop();
                 }
                 this.refresh();
             });
@@ -591,6 +593,7 @@ export class CommandDeck extends BaseScriptComponent {
         this.recent = [cmd].concat(this.recent.filter((c) => c !== cmd)).slice(0, 3);
         this.compose = [];
         this.open = null;
+        this.scroll.toTop(); // back to the compass for the next move
         this.refresh();
     }
 
